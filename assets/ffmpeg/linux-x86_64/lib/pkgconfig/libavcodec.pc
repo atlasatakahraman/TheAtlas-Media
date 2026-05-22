@@ -1,0 +1,14 @@
+prefix=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/linux-x86_64
+exec_prefix=${prefix}
+libdir=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/linux-x86_64/lib
+includedir=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/linux-x86_64/include
+
+Name: libavcodec
+Description: FFmpeg codec library
+Version: 62.33.100
+Requires: libswresample >= 6.4.100, libavutil >= 60.31.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavcodec -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lvpx -lm -lm -lpthread -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lvpx -lm -lm -lpthread -pthread -lm -latomic -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -ldav1d -pthread -ldl -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -laom -lm -lmp3lame -lm -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lopus -lm -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lvorbis -lm -logg -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lvorbisenc -lvorbis -lm -logg -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lx264 -lpthread -lm -ldl -L/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/deps/linux-x86_64/lib -lx265 -lstdc++ -lm -lpthread -ldl -lstdc++ -lm -lpthread -ldl -lz
+Libs.private: 
+Cflags: -I${includedir}

@@ -1,0 +1,59 @@
+{
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "theatlas-youtube",
+  "version": "0.1.0",
+  "identifier": "com.atlasata.theatlas-youtube",
+  "build": {
+    "frontendDist": "../out",
+    "devUrl": "http://localhost:3000",
+    "beforeDevCommand": "bun run next:dev",
+    "beforeBuildCommand": "bun run next:build"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "TheAtlas - Youtube",
+        "width": 1024,
+        "height": 768,
+        "resizable": true,
+        "decorations": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self' tauri: asset: https://*.supabase.co; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' tauri: asset: blob: data: https://i.ytimg.com https://i9.ytimg.com https://yt3.ggpht.com https://i.imgur.com https://*.supabase.co; media-src 'self' tauri: asset: blob: data:; font-src 'self' tauri: asset: data:; connect-src 'self' tauri: asset: ipc: http://ipc.localhost https://ipc.localhost https://*.supabase.co https://zxxaiivewfraanfnumpp.supabase.co wss://*.supabase.co http://localhost; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "displayLanguageSelector": true,
+        "installMode": "currentUser"
+      }
+    },
+    "linux": {
+      "appimage": {
+        "bundleMediaFramework": false,
+        "files": {}
+      },
+      "deb": {
+        "files": {}
+      },
+      "rpm": {
+        "epoch": 0,
+        "files": {},
+        "release": "1"
+      }
+    }
+  }
+}

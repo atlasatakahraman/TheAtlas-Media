@@ -1,0 +1,14 @@
+prefix=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/windows-x86_64
+exec_prefix=${prefix}
+libdir=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/windows-x86_64/lib
+includedir=/home/atlasata/code/rust/theatlas-youtube/assets/ffmpeg/dist/windows-x86_64/include
+
+Name: libavformat
+Description: FFmpeg container format library
+Version: 62.16.100
+Requires: libavcodec >= 62.33.100, libswresample >= 6.4.100, libavutil >= 60.31.100
+Requires.private: 
+Conflicts:
+Libs: -L${libdir}  -lavformat -lm -latomic -lz
+Libs.private: 
+Cflags: -I${includedir}
