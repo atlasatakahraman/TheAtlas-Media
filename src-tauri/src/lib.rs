@@ -29,11 +29,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![is_wayland])
         .setup(|app| {
-            let _webview = app.get_webview_window("main").unwrap();
-
-            #[cfg(target_os = "windows")]
+            #[cfg(target_os = "linux")]
             {
-                _webview.set_shadow(false);
+                _ = app.get_webview_window("main").unwrap().set_shadow(false);
             }
 
             if cfg!(debug_assertions) {
