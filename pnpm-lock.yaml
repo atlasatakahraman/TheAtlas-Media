@@ -7,7 +7,6 @@ settings:
 importers:
 
   .:
-    name: theatlas-media
     dependencies:
       '@base-ui/react':
         specifier: ^1.5.0
