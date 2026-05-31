@@ -1,9 +1,11 @@
-allowBuilds:
-  msw: set this to true or false
-  sharp: set this to true or false
-  unrs-resolver: set this to true or false
+# pnpm 10+ build script gates.
+# Block transitive native deps from running postinstall builds we don't need.
+# - sharp: image processor (Next.js pulls it for image optimization; we use
+#   `images: { unoptimized: true }` so we don't need its native libvips builds)
+# - unrs-resolver: native module resolver, not needed
+# See: https://pnpm.io/settings#ignoredbuiltdependencies
+
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
-onlyBuiltDependencies:
   - msw

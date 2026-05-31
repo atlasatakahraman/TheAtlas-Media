@@ -1,5 +1,10 @@
 {
 	"name": "theatlas-media",
+	"packageManager": "pnpm@10.33.4",
+	"engines": {
+    "node": ">=20.9",
+    "pnpm": ">=10.33"
+	},
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
