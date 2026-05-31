@@ -48,6 +48,9 @@ const eslintConfig = defineConfig([
         "out/**",
         "build/**",
         "next-env.d.ts",
+        "src-tauri/target/**",      // Rust build cache (Tauri generates .js files in there)
+        "node_modules/**",          // safety net
+        ".gemini/antigravity/**",
     ]),
     // TODO: shadcn-generated components use transition-all by upstream
     // convention. Migrate to transition-transform / transition-opacity
