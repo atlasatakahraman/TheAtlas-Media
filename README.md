@@ -1,129 +1,115 @@
-# TheAtlas Media Processing
+<p align="center">
+  <img src="https://img.shields.io/badge/License-AAKNCL_v1.0-gray?style=for-the-badge" alt="License" />
+  <img src="https://img.shields.io/badge/Tauri-2.0-blue?style=for-the-badge&logo=tauri" alt="Tauri" />
+  <img src="https://img.shields.io/badge/Rust-Backend-orange?style=for-the-badge&logo=rust" alt="Rust" />
+  <img src="https://img.shields.io/badge/TypeScript-Frontend-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Next.js-Framework-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Platform-Cross--Platform-brightgreen?style=for-the-badge" alt="Platform" />
+</p>
 
-A high-performance desktop app for downloading, extracting, and converting media — Next.js frontend, Rust backend.
+<p align="center">
+  <img src="./src/assets/TheAtlasW2048.png" alt="TheAtlas Media Logo" width="220" />
+</p>
 
-![License](https://img.shields.io/badge/License-AAKNCL_v1.0-gray)
-![Tech](https://img.shields.io/badge/Tech-Next.js_16.2.6_|_React_19.2_|_Tauri_2.11_|_Rust_1.89-blue)
-![Status](https://img.shields.io/badge/Status-Phase_0_complete-green)
-[![CI](https://github.com/atlasatakahraman/TheAtlas-Media/actions/workflows/ci.yml/badge.svg)](.github/workflows/ci.yml)
+# TheAtlas — Media
 
-## Overview
+> **A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.**
 
-TheAtlas Media is a dedicated desktop application for downloading, extracting, and converting media files. It is strictly designed for personal, educational, and non-commercial use. The architecture clearly separates concerns: the Rust backend exclusively handles process-heavy work like orchestrating downloads and invoking binaries, while the Next.js 16 frontend focuses purely on responsive UI and state management (see [docs/adr/ADR-005](./docs/adr/ADR-005-yt-dlp-crate-pivot.md), [ADR-006](./docs/adr/ADR-006-src-directory-layout.md)).
+---
 
-## Status
+## ✨ Overview
 
-- **Phase 0 complete** (see [CHANGELOG.md](./documentation/CHANGELOG.md)): Plans 01-09, ADR-005 and ADR-006, CI workflows, lint/format gates, Rust 1.89 toolchain pin, working dev environment.
-- **Phase 1 next**: scaffold IPC contracts and the ExtractorBackend trait (see [plans/05_YT_DLP_RUST_BACKEND_PLAN.md](./plans/05_YT_DLP_RUST_BACKEND_PLAN.md)).
+TheAtlas Media is a modern desktop application built on Next.js, TypeScript, and Tauri 2.x, with a Rust backend. It is the dedicated media-processing counterpart to the broader TheAtlas project, focused exclusively on high-performance video and audio workflows on the user's own machine.
 
-See [plans/README.md](./plans/README.md) for the full project roadmap.
+The project focuses on delivering:
+- Clean and modern **UI/UX**
+- High-performance **native cross-platform** capabilities
+- Powerful **video and audio downloading**
+- Efficient **media extraction and conversion**
+- **Local-first** processing with no telemetry
 
-## Tech stack
+---
 
-| Layer | Tech | Version |
-|---|---|---|
-| Frontend framework | Next.js | 16.2.6 |
-| React | React / ReactDOM | 19.2.4 |
-| Bundler | Turbopack | (Next.js default) |
-| Styling | Tailwind CSS | v4 |
-| UI primitives | shadcn/ui | 4.8.2 |
-| Desktop runtime | Tauri | 2.11.2 |
-| Backend | Rust | 1.89 |
-| Toolchain | Node | ≥ 20.9 |
-| Package manager | pnpm | 10.33.4 |
-| Media extractor | boul2gom yt-dlp crate | v2.7.x |
+## 🧠 Key Features
 
-## Prerequisites
+- 🖥️ **Cross-platform desktop application** (Windows · macOS · Linux)
+- 🎨 **Modern UI/UX** powered by Next.js + shadcn/ui
+- 🎞️ **Video downloading & format conversion**
+- 🎵 **Audio extraction & metadata tagging**
+- 🔐 **Local-first & privacy-focused** architecture
+- 🦀 **Rust-powered backend** for performance and safety
+- ⚡ **Native parallel-segment downloads** (no slow CLI wrapper)
+- 🧩 **Format presets** instead of raw flags — safer and simpler
 
-- **Node** ≥ 20.9
-- **pnpm** 10.33.4
-- **Rust** ≥ 1.89 (Pinned for Tauri 2.11's transitive MSRV dependencies)
-- **Linux system dependencies** (Ubuntu/Debian):
-  ```bash
-  sudo apt-get update
-  sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev build-essential
-  ```
-  *(macOS and Windows require no additional system dependencies).*
+---
 
-## Getting started
+## 🧩 Technology Stack
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/atlasatakahraman/TheAtlas-Media.git
-   cd TheAtlas-Media
-   ```
+### Frontend
+- **Next.js 16** (App Router, Turbopack)
+- **TypeScript**
+- **shadcn/ui** + **Tailwind CSS v4**
 
-2. Install Node dependencies:
-   ```bash
-   pnpm install --frozen-lockfile
-   ```
+### Backend
+- **Rust 1.89+**
+- **Tauri 2.x**
+- **boul2gom yt-dlp** Rust crate (managed binaries, native HTTP)
 
-3. Run the development environment:
-   ```bash
-   pnpm tauri:dev
-   ```
+### Media Processing
+- **FFmpeg** (managed automatically by the yt-dlp crate)
+- **lofty** for audio metadata tagging
 
-4. Build the release bundle:
-   ```bash
-   pnpm tauri:build
-   ```
+---
 
-## Project layout
+## 🔒 Privacy & Security
 
-```text
-.
-├── src/                    # Next.js App Router (D11: src/ layout)
-│   ├── app/                # Application routes
-│   ├── components/         # UI (shadcn under ui/, app-specific elsewhere)
-│   ├── hooks/              # Custom React hooks
-│   ├── layout/             # App shell layouts
-│   └── lib/                # Utility functions
-├── src-tauri/              # Rust backend
-│   ├── src/                # Command handlers (Phase 1+)
-│   └── capabilities/       # Tauri 2.x permission scopes
-├── plans/                  # Project execution plans
-├── docs/adr/               # Architecture Decision Records
-├── documentation/          # Source-of-truth docs (GOAL, ANIMATION, etc.)
-├── .gemini/antigravity/    # Antigravity workspace config (KB, skills, agent definitions)
-└── .github/workflows/      # CI: ci, security-audit, license, agents-doc-drift, pr-labeler
-```
+- No telemetry
+- No analytics
+- No background data collection
+- All data is stored locally on the user's device
 
-## Scripts
+> A formal privacy policy will accompany the first public release.
 
-| Script | Description |
-|---|---|
-| `pnpm dev` | Start the Next.js development server (frontend only) |
-| `pnpm build` | Build the Next.js application for production export |
-| `pnpm lint` | Run ESLint checks against the frontend codebase |
-| `pnpm tauri:dev` | Start the Tauri backend and Next.js frontend in dev mode |
-| `pnpm tauri:build` | Build the standalone Tauri application bundle |
-| `scripts/check-compat.sh` | Verify the Rust toolchain version compatibility |
-| `scripts/check-agents-rules.sh` | Verify Next.js doc stamps and root `/app` guardrail |
-| `scripts/check-animation-rules.sh` | Enforce performance-friendly animation rules |
+---
 
-## Contributing
+## 📦 Installation
 
-- **Execution Plans:** Our plans govern the architecture and live in `plans/`. Read [plans/README.md](./plans/README.md) first.
-- **Pull Requests:** PRs require the `.github/pull_request_template.md` checklist to be completely filled out.
-- **Locked Decisions:** (D1–D11) are outlined in `plans/README.md` "Cross-cutting decisions". You must cite the authorizing D-number that justifies your change in your PR description.
-- **Frontend Guidelines:** Before making any `.tsx` changes, strictly follow the Next.js 16 pre-flight protocol defined in `plans/02_AGENTS_PLAN.md` §3.
+> 🚧 Installation instructions will be added as the project matures. Track progress in the [CHANGELOG](./documentation/CHANGELOG.md).
 
-## License
+---
 
-This project is licensed under the **Atlas Ata Kahraman Non-Commercial License v1.0 (AAKNCL)** — see [LICENSE.md](./LICENSE.md).
+## 🛠️ Development Status
 
-> Based on work by Atlas Ata KAHRAMAN (atlasfirarda) — https://github.com/atlasatakahraman
+TheAtlas Media is under **active development**.
 
-**Personal, educational, and non-commercial use is free.**
-Commercial use (selling, SaaS, paid features, bundling into a commercial product) requires a separate commercial license.
+Phase 0 (scaffolding, governance, CI) is complete. Phase 1 (Rust backend extractor + IPC contracts) is in progress.
 
-### Commercial licensing
-Email: **atlasatakahraman.com@gmail.com**
+Features, APIs, and internal architecture may change as the project evolves toward its first public release.
 
-## Third-party notices
+---
 
-Bundled binaries (yt-dlp + ffmpeg) are managed by the boul2gom yt-dlp crate; FFmpeg ships under LGPL 2.1+; details in [docs/adr/ADR-005-yt-dlp-crate-pivot.md](./docs/adr/ADR-005-yt-dlp-crate-pivot.md) and (when implemented) `src-tauri/resources/LICENSES/`. `docs/THIRD_PARTY_LICENSES.md` will be generated by Plan 08 / Phase 4.
+## 📚 Legal
 
-## Acknowledgements
+- **Application Name:** TheAtlas Media
+- **Copyright:** © Atlas Ata KAHRAMAN
+- **Alias:** atlasfirarda
+- **License:** [AAKNCL v1.0](./LICENSE.md) (Non-Commercial)
 
-Special thanks to shadcn/ui, Radix UI, Tauri, Next.js, and the boul2gom yt-dlp crate for providing the excellent foundational layers of this application.
+Personal, educational, and non-commercial use is free. Commercial use requires a separate commercial license — see [LICENSE.md](./LICENSE.md).
+
+Unauthorized commercial use, sublicensing, or trademark abuse of "TheAtlas", "TheAtlas Media", or the project's logos is strictly prohibited.
+
+---
+
+## 📧 Contact
+
+For technical, legal, or commercial-licensing inquiries:
+
+- **Developer:** Atlas Ata KAHRAMAN
+- **Alias:** atlasfirarda
+- **Email:** atlasatakahraman.com@gmail.com
+- **GitHub:** https://github.com/atlasatakahraman
+
+---
+
+⭐ If you find this project interesting, consider starring the repository.
