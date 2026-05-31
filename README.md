@@ -11,9 +11,9 @@
   <img src="./src/assets/TheAtlasB2048.png" alt="TheAtlas Media Logo" width="220" />
 </p>
 
-<h1 align="center">TheAtlas</h1>
+<h1 align="center">TheAtlas — Media</h1>
 
-> **A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.**
+> <p align="center">**A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.** </p>
 
 ---
 
