@@ -13,7 +13,7 @@
 
 <h1 align="center">TheAtlas — Media</h1>
 
-> <p align="center">**A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.** </p>
+> **<p align="center">A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.** </p>
 
 ---
 
