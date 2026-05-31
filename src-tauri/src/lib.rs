@@ -1,5 +1,4 @@
 use std::env;
-use tauri::Manager;
 
 mod commands;
 
@@ -29,11 +28,6 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![is_wayland])
         .setup(|app| {
-            #[cfg(target_os = "linux")]
-            {
-                _ = app.get_webview_window("main").unwrap().set_shadow(false);
-            }
-
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
