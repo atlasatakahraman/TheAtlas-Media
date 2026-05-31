@@ -8,10 +8,10 @@
 </p>
 
 <p align="center">
-  <img src="./src/assets/TheAtlasW2048.png" alt="TheAtlas Media Logo" width="220" />
+  <img src="./src/assets/TheAtlasB2048.png" alt="TheAtlas Media Logo" width="220" />
 </p>
 
-# TheAtlas — Media
+<h1 align="center">TheAtlas</h1>
 
 > **A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.**
 
