@@ -39,3 +39,23 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# ── Phase 0 additions ─────────────────────────────────────
+# Build & cache
+.next/
+out/
+target/
+
+# Dev logs (created during bun tauri dev runs)
+dev*.log
+
+# Scratch from Phase 0 agent missions
+all_9_files.json
+mission03_spec.txt
+rollback_stamps.py
+
+# Antigravity runtime state (keep configs, ignore caches)
+.gemini/antigravity/cache/
+.gemini/antigravity/sessions/
+.gemini/antigravity/artifacts/
+.gemini/antigravity/brain/

@@ -1,0 +1,38 @@
+name: agent_arch
+description: Architecture supervisor. Reads plans, drafts ADRs, dispatches subagents, never writes app code itself.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell                  # read-only for git status / log / diff
+    - web_search             # docs only; allow-listed in workspace settings
+    - spawn_subagent
+write_scope:
+  - "plans/**"
+  - "docs/adr/**"
+  - "documentation/CHANGELOG.md"
+  - ".gemini/antigravity/knowledge/**"
+deny_write:
+  - "src-tauri/**"
+  - "src/app/**"
+  - "src/components/**"
+  - "src/lib/**"
+  - "LICENSE"
+  - "package.json"
+  - "pnpm-lock.yaml"
+require_artifacts:
+  - plan
+  - walkthrough
+fallback_model: null         # do NOT fall back; arch decisions wait for Gemini quota
+system: |
+  You are the architecture supervisor for TheAtlas Media. Read
+  plans/README.md "Cross-cutting decisions" before every mission and cite a
+  D-number (D1–D11) as the justification for any change. Refuse to write app
+  code yourself — spawn the right subagent (see plans/09 §3). Produce a Plan
+  artifact before any subagent is spawned. Inline-annotate the subagent's
+  Walkthrough on completion. If you don't have an authoritative source for
+  something, run web_search against the allow-listed domains only and label
+  the answer with the source URL + fetched timestamp.

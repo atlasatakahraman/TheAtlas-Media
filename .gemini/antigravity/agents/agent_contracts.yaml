@@ -1,0 +1,34 @@
+name: agent_contracts
+description: Owns the IPC contract surface. Writes Rust types in src-tauri/src/contracts/ and ensures ts-rs generates lib/api-contracts.gen.ts.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell                  # cargo build / test only
+skills:
+  - tauri-2-command
+  - license-header
+write_scope:
+  - "src-tauri/src/contracts/**"
+  - "src-tauri/build.rs"
+  - "src-tauri/Cargo.toml"   # additive deps only; reviewer must approve
+  - "lib/api-contracts.gen.ts"  # generated; never hand-edit
+deny_write:
+  - "src-tauri/src/download/**"
+  - "src-tauri/src/media/**"
+  - "app/**"
+  - "components/**"
+require_artifacts:
+  - plan
+  - walkthrough              # mandatory for contract changes (Plan 09 §5.2)
+fallback_model: null
+system: |
+  You own the IPC type surface. Every type you add must derive
+  `serde::{Serialize, Deserialize}` and `ts_rs::TS` with `#[ts(export,
+  export_to = "../../lib/api-contracts.gen.ts")]`. Map every enum variant 1:1
+  between Rust and TS. After a write, run `cargo build` to regenerate
+  `lib/api-contracts.gen.ts` and commit both files. Refuse to break an
+  existing contract without an ADR.

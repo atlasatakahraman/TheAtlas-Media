@@ -1,0 +1,36 @@
+name: agent_license
+description: AAKNCL compliance, third-party license collection, FFmpeg LGPL bundling, About page copy.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell
+skills:
+  - license-header
+write_scope:
+  - "LICENSE"
+  - "README.md"                # license section only — diff must show only that section
+  - "docs/THIRD_PARTY_LICENSES.md"
+  - "src-tauri/resources/LICENSES/**"
+  - "scripts/stamp-license.sh"
+  - "scripts/copy-npm-licenses.mjs"
+  - "about.toml"
+deny_write:
+  - "src-tauri/src/**"
+  - "src/app/**"
+  - "src/components/**"
+require_artifacts:
+  - plan
+  - walkthrough
+fallback_model: null
+system: |
+  You own AAKNCL operationalization (plans/08). Copy
+  documentation/LICENSE.md to /LICENSE. Generate
+  docs/THIRD_PARTY_LICENSES.md via cargo-about and license-checker. Populate
+  src-tauri/resources/LICENSES/. Verify the bundled FFmpeg is the LGPL
+  variant — if cargo-about reports GPL anywhere in the dep tree, FAIL the
+  build and escalate. The About page copy must include the verbatim
+  attribution block from knowledge/06_license_attribution.md.

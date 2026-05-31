@@ -1,20 +1,41 @@
-mod commands;
-mod error;
-mod supabase;
+use std::env;
+use tauri::Manager;
 
-use crate::supabase::SupabaseClient;
+mod commands;
+
+#[tauri::command]
+fn is_wayland() -> bool {
+    std::env::var("WAYLAND_DISPLAY").is_ok()
+        || std::env::var("XDG_SESSION_TYPE")
+            .unwrap_or_default()
+            .to_lowercase()
+            == "wayland"
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(target_os = "linux")]
-    std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
-    #[cfg(target_os = "linux")]
-    std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+    {
+        let is_wayland = env::var("XDG_SESSION_TYPE")
+            .map(|val| val == "wayland")
+            .unwrap_or(false);
 
-    let supabase_client = SupabaseClient::new();
+        if is_wayland {
+            env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        }
+    }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![is_wayland])
         .setup(|app| {
+            let _webview = app.get_webview_window("main").unwrap();
+
+            #[cfg(target_os = "windows")]
+            {
+                _webview.set_shadow(false);
+            }
+
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -24,17 +45,6 @@ pub fn run() {
             }
             Ok(())
         })
-        .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_oauth::init())
-        .manage(supabase_client)
-        .invoke_handler(tauri::generate_handler![
-            commands::auth::auth_oauth_start,
-            commands::auth::auth_oauth_cancel,
-            commands::auth::auth_parse_oauth_callback,
-            commands::auth::auth_sign_out,
-            commands::auth::auth_get_session,
-            commands::auth::auth_refresh_token,
-        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -1,0 +1,31 @@
+name: agent_pr_review
+description: CI-only PR reviewer. Invoked by .github/workflows/agy-verify.yml on every PR.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - shell
+    - file_read
+    - github_pr_comment
+budget_usd_per_run: 0.50
+deny_write:
+  - "**"                       # review-only; comments via tool, not file_write
+require_artifacts:
+  - plan
+fallback_model: null
+system: |
+  You are a non-blocking CI reviewer. Read the PR diff. Cross-reference
+  against plans/README.md "Cross-cutting decisions" D1–D11 and the
+  Acceptance Criteria of any plan whose scope the PR touches. Run:
+    cargo fmt --check
+    cargo clippy --all-targets -- -D warnings
+    cargo test
+    pnpm tsc --noEmit
+    pnpm lint
+    pnpm test
+    scripts/check-agents-rules.sh
+    scripts/check-animation-rules.sh
+  Post an inline comment on every violation citing the D-number or plan
+  section. Approve the PR only if all checks pass and you find no
+  violations. Stop at $0.50 of spend regardless of completeness.

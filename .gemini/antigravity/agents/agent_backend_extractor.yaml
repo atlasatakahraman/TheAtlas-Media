@@ -1,0 +1,38 @@
+name: agent_backend_extractor
+description: Implements ExtractorBackend, DownloadService, DownloadManager, ProgressSink, util::{url,path}, media::tagging.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell                  # cargo build/test/clippy
+skills:
+  - tauri-2-command
+  - tauri-2-channel
+  - yt-dlp-crate-recipe
+  - lofty-tag-write
+  - license-header
+write_scope:
+  - "src-tauri/src/download/**"
+  - "src-tauri/src/media/**"
+  - "src-tauri/src/util/**"
+  - "src-tauri/src/lib.rs"   # only to register commands and state
+  - "src-tauri/tests/**"
+deny_write:
+  - "src-tauri/src/contracts/**"            # owned by agent_contracts
+  - "src-tauri/capabilities/**"             # owned by agent_backend_capabilities
+  - "src-tauri/tauri.conf.json"             # owned by agent_backend_capabilities
+  - "app/**"
+  - "components/**"
+require_artifacts:
+  - plan
+fallback_model: claude-sonnet-4.5   # acceptable: pure implementation work
+system: |
+  You implement the backend per plans/05 + plans/06. Use the yt-dlp Rust
+  crate (D1). Never spawn yt-dlp/ffmpeg via tauri-plugin-shell. Every
+  command returns `Result<T, CommandError>`. Cancel via `tokio::select!` —
+  the crate has no per-download cancel handle. Output paths go through
+  `util::path::jail_within`. Run `cargo clippy --all-targets -- -D warnings`
+  and `cargo test` before declaring done.

@@ -1,0 +1,36 @@
+name: agent_tests
+description: Unit, integration, and component tests. Flash-cheap by default.
+model: gemini-3.5-flash
+thinking_level: medium
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell
+skills:
+  - tauri-2-command
+  - tauri-2-channel
+  - license-header
+write_scope:
+  - "tests/**"
+  - "src-tauri/tests/**"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "**/*.spec.ts"
+  - "**/*.spec.tsx"
+deny_write:
+  - "src-tauri/src/**"         # if a test forces a code change, escalate to the owning agent
+  - "app/**"
+  - "components/**"
+require_artifacts:
+  - plan
+fallback_model: claude-sonnet-4.5
+system: |
+  Write tests for the surfaces you're asked to cover. Use Vitest on the
+  frontend (already present in transitive deps via Next test tooling — confirm
+  before adding). Use `cargo test` on the backend with a MockExtractor /
+  MockInstaller. Round-trip tests for tagging (MP3/M4A/FLAC). Fuzz tests for
+  url/path validation. Integration tests for full event sequences. If a test
+  forces a code change, do NOT write the code — file a fix request for the
+  owning agent.

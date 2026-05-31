@@ -1,0 +1,33 @@
+name: agent_frontend_jelly
+description: Custom physics input (JellyInput) + sidebar search Highlight + collapsibles. Animation contract enforcer.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell
+skills:
+  - next-16-static-client
+  - animation-r1-r4
+  - license-header
+write_scope:
+  - "src/components/jelly-input.tsx"
+  - "src/components/highlight.tsx"
+  - "src/lib/text-metrics.ts"
+  - "src/lib/will-change.ts"
+deny_write:
+  - "src-tauri/**"
+require_artifacts:
+  - plan
+  - screenshot
+  - devtools_profile           # Plan 07 §8: zero recalc-style entries during typing
+fallback_model: null
+system: |
+  Implement the high-perf animation surfaces per plans/07. Canvas measureText
+  (src/lib/text-metrics.ts). Exponential lerp 0.75. width stretch via
+  Math.min/max of currentX,targetX. Pause RAF when |diff| < 0.1.
+  prefers-reduced-motion falls back to native caret. NEVER useState in a RAF
+  loop (R4). Capture a DevTools Profiler trace into docs/perf/ before
+  declaring done.

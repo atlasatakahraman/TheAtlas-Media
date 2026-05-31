@@ -1,0 +1,19 @@
+frontend:
+  - src/**/*
+  - tailwind.config.ts
+  - postcss.config.mjs
+
+backend:
+  - src-tauri/**/*
+
+docs:
+  - plans/**/*
+  - documentation/**/*
+  - README.md
+
+agents:
+  - .gemini/**/*
+  - scripts/**/*
+
+ci:
+  - .github/**/*

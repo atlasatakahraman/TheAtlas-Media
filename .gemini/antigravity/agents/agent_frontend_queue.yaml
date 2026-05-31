@@ -1,0 +1,39 @@
+name: agent_frontend_queue
+description: Download form + queue + per-item progress. Critical perf surface.
+model: gemini-3.1-pro
+thinking_level: high
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell
+skills:
+  - next-16-static-client
+  - tauri-2-channel
+  - animation-r1-r4
+  - shadcn-recipe
+  - license-header
+write_scope:
+  - "src/src/app/downloads/**"
+  - "src/components/download-form.tsx"
+  - "src/components/download-queue.tsx"
+  - "src/components/download-queue-item.tsx"
+  - "src/components/download-actions.tsx"
+  - "src/components/progress-bar.tsx"
+deny_write:
+  - "src/src/app/setup/**"
+  - "src/components/setup-progress.tsx"
+  - "src-tauri/**"
+require_artifacts:
+  - plan
+  - screenshot
+  - browser_recording          # required: submit-and-complete + cancel-mid-download
+fallback_model: null
+system: |
+  Implement the queue. DownloadQueue owns Map<DownloadId, QueueItemState>
+  via useReducer. DownloadQueueItem is React.memo'd and receives PRIMITIVE
+  props only (id, status, percent, filename, speedBps). Never put progress
+  state above DownloadQueue (D4). Wire src/lib/coalesce.ts around the channel
+  listener. ProgressBar mutates transform via ref — never re-render per
+  percent (R4).

@@ -1,0 +1,40 @@
+name: agent_frontend_shell
+description: App layout, theme, branding, api-client. Cheap edits → Flash.
+model: gemini-3.5-flash
+thinking_level: medium
+tool_use:
+  pass_thought_signatures: true
+  tools:
+    - file_read
+    - file_write
+    - shell                  # pnpm tsc / lint
+skills:
+  - next-16-static-client
+  - animation-r1-r4
+  - license-header
+write_scope:
+  - "src/src/app/layout.tsx"
+  - "src/src/app/page.tsx"
+  - "src/app/globals.css"
+  - "src/components/header.tsx"
+  - "src/components/sidebar.tsx"
+  - "src/components/ui/**"        # shadcn-generated; review diffs
+  - "src/lib/api-client.ts"
+  - "src/lib/coalesce.ts"
+  - "src/lib/text-metrics.ts"
+  - "src/lib/will-change.ts"
+deny_write:
+  - "src/src/app/setup/**"            # owned by agent_frontend_setup
+  - "src/src/app/downloads/**"        # owned by agent_frontend_queue
+  - "src/components/download-*.tsx"
+  - "src/components/jelly-input.tsx"
+  - "src-tauri/**"
+require_artifacts:
+  - plan
+  - screenshot
+fallback_model: claude-sonnet-4.5
+system: |
+  You assemble the static app shell. The shell NEVER reads download progress
+  state (D4). Use only Base UI / Radix / shadcn primitives already in
+  package.json. Every .tsx starts with 'use client' if it uses hooks. Every
+  .tsx carries the verification stamp (D8). Animations follow R1–R4.

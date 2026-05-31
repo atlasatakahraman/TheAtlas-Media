@@ -1,59 +1,169 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "theatlas-youtube",
-  "version": "0.1.0",
-  "identifier": "com.atlasata.theatlas-youtube",
-  "build": {
-    "frontendDist": "../out",
-    "devUrl": "http://localhost:3000",
-    "beforeDevCommand": "bun run next:dev",
-    "beforeBuildCommand": "bun run next:build"
-  },
-  "app": {
-    "windows": [
-      {
-        "title": "TheAtlas - Youtube",
-        "width": 1024,
-        "height": 768,
-        "resizable": true,
-        "decorations": true,
-        "fullscreen": false
-      }
-    ],
-    "security": {
-      "csp": "default-src 'self' tauri: asset: https://*.supabase.co; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' tauri: asset: blob: data: https://i.ytimg.com https://i9.ytimg.com https://yt3.ggpht.com https://i.imgur.com https://*.supabase.co; media-src 'self' tauri: asset: blob: data:; font-src 'self' tauri: asset: data:; connect-src 'self' tauri: asset: ipc: http://ipc.localhost https://ipc.localhost https://*.supabase.co https://zxxaiivewfraanfnumpp.supabase.co wss://*.supabase.co http://localhost; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
-    }
-  },
-  "bundle": {
-    "active": true,
-    "targets": "all",
-    "externalBin": ["binaries/ffmpeg", "binaries/ffprobe"],
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "windows": {
-      "nsis": {
-        "displayLanguageSelector": true,
-        "installMode": "currentUser"
-      }
-    },
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": false,
-        "files": {}
-      },
-      "deb": {
-        "files": {}
-      },
-      "rpm": {
-        "epoch": 0,
-        "files": {},
-        "release": "1"
-      }
-    }
-  }
+	"$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
+	"productName": "TheAtlas Media",
+	"version": "0.0.1",
+	"identifier": "com.atlasata.theatlas-media",
+	"build": {
+		"frontendDist": "../out",
+		"devUrl": "http://localhost:3000",
+		"beforeDevCommand": "bun next",
+		"beforeBuildCommand": "bun build"
+	},
+	"app": {
+		"windows": [
+			{
+				"title": "TheAtlas — Media",
+				"resizable": true,
+				"decorations": false
+			}
+		],
+		"security": {
+			"csp": {
+				"default-src": [
+					"'self'"
+				],
+				"script-src": [
+					"'self'",
+					"localhost:*"
+				],
+				"style-src": [
+					"'self'",
+					"'unsafe-inline'"
+				],
+				"img-src": [
+					"'self'",
+					"data:",
+					"https:"
+				],
+				"media-src": [
+					"'self'",
+					"data:",
+					"https:"
+				],
+				"font-src": [
+					"'self'",
+					"data:"
+				],
+				"connect-src": [
+					"'self'",
+					"localhost:*",
+					"ws://localhost:*",
+					"wss://localhost:*"
+				],
+				"frame-src": [
+					"'self'"
+				],
+				"object-src": [
+					"'none'"
+				],
+				"base-uri": [
+					"'self'"
+				],
+				"form-action": [
+					"'self'"
+				],
+				"frame-ancestors": [
+					"'none'"
+				]
+			}
+		}
+	},
+	"bundle": {
+		"active": true,
+		"targets": "all",
+		"icon": [
+			"icons/32x32.png",
+			"icons/128x128.png",
+			"icons/128x128@2x.png",
+			"icons/icon.icns",
+			"icons/icon.ico"
+		],
+		"android": {
+			"debugApplicationIdSuffix": ".debug"
+		},
+		"copyright": "atlasatakahraman 2026",
+		"license": "AAKNCL-1.0",
+		"category": "GraphicsAndDesign",
+		"homepage": "main",
+		"publisher": "Atlas Ata KAHRAMAN",
+		"licenseFile": "../LICENSE.md",
+		"fileAssociations": [
+			{
+				"ext": [
+					"tmp-video"
+				],
+				"mimeType": "video/mp4",
+				"name": "Temporary Video File",
+				"exportedType": {
+					"identifier": "com.atlasata.tempvideo",
+					"conformsTo": [
+						"public.movie",
+						"public.data"
+					]
+				},
+				"role": "Viewer"
+			},
+			{
+				"ext": [
+					"tmp-audio"
+				],
+				"mimeType": "audio/m4a",
+				"name": "Temporary Audio File",
+				"exportedType": {
+					"identifier": "com.atlasata.tempaudio",
+					"conformsTo": [
+						"public.audio",
+						"public.data"
+					]
+				},
+				"role": "Viewer"
+			},
+			{
+				"ext": [
+					"webm"
+				],
+				"mimeType": "video/webm",
+				"name": "Temporary Video File",
+				"exportedType": {
+					"identifier": "com.atlasata.tempvideo",
+					"conformsTo": [
+						"public.movie",
+						"public.data"
+					]
+				},
+				"role": "Viewer"
+			}
+		],
+		"resources": [
+			"../src/assets/*"
+		],
+		"windows": {
+			"allowDowngrades": true,
+			"certificateThumbprint": null,
+			"digestAlgorithm": "SHA-256",
+			"minimumWebview2Version": null,
+			"nsis": {
+				"compression": "lzma",
+				"displayLanguageSelector": true,
+				"installerIcon": "./icons/icon.ico",
+				"languages": [
+					"Turkish",
+					"English"
+				],
+				"startMenuFolder": "TheAtlas",
+				"installMode": "currentUser"
+			},
+			"signCommand": null,
+			"timestampUrl": null,
+			"tsp": false,
+			"webviewInstallMode": {
+				"silent": true,
+				"type": "embedBootstrapper"
+			},
+			"wix": {
+				"enableElevatedUpdateTask": false,
+				"language": "en-US"
+			}
+		}
+	}
 }

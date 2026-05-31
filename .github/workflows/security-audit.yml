@@ -1,0 +1,53 @@
+name: Security Audit
+
+on:
+  pull_request:
+    paths:
+      - 'src-tauri/Cargo.toml'
+      - 'src-tauri/Cargo.lock'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.9
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.89
+
+      - name: Install cargo-audit
+        run: cargo install cargo-audit
+
+      - name: Cargo Audit
+        working-directory: src-tauri
+        run: cargo audit
+
+      - name: pnpm audit
+        run: pnpm audit
+
+      - name: Install Gitleaks
+        run: |
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.2/gitleaks_8.18.2_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.2_linux_x64.tar.gz
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks
+        run: gitleaks detect --source . -v
