@@ -12,5 +12,14 @@ echo "Checking TypeScript types (full)..."
 if command -v pnpm >/dev/null 2>&1; then
     pnpm tsc --noEmit || { echo "✗ TypeScript errors — fix before commit"; exit 1; }
 fi
+echo "Checking Rust formatting..."
+if [ -d src-tauri ] && command -v cargo >/dev/null 2>&1; then
+    (cd src-tauri && cargo fmt --check) || { echo "✗ Rust formatting — run 'cd src-tauri && cargo fmt --all'"; exit 1; }
+fi
+
+echo "Checking Rust lints (clippy)..."
+if [ -d src-tauri ] && command -v cargo >/dev/null 2>&1; then
+    (cd src-tauri && cargo clippy --all-targets -- -D warnings) || { echo "✗ Rust clippy errors"; exit 1; }
+fi
 echo "Compatibility checks passed."
 exit 0
