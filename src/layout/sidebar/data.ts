@@ -61,6 +61,7 @@ import {
 	LucideGrid2x2,
 } from "lucide-react";
 import type { MenuGroup } from "./types";
+import { useRouter } from "next/navigation";
 
 export function getSidebarMenuGroups(): MenuGroup[] {
 	return [
@@ -77,7 +78,7 @@ export function getSidebarMenuGroups(): MenuGroup[] {
 						{
 							title: "Single Video",
 							icon: LucideFileVideo2,
-							url: "/youtube/download/video",
+							url: "/youtube/video",
 						},
 						{
 							title: "Playlist",

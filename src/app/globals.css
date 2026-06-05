@@ -121,4 +121,6 @@
 	}
 }
 
-
+::view-transition {
+	navigation: auto;
+}

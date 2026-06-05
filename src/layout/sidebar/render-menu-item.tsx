@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { MenuItem, RenderMenuItemProps } from "./types";
 
 function containsActiveUrl(item: MenuItem, pathname: string): boolean {
@@ -186,6 +186,7 @@ const RenderMenuItem = ({
 	const MenuComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
 
 	if (item.url) {
+
 		return (
 			<MenuComponent onClick={item.action} className="cursor-pointer">
 				{item.icon && <item.icon className="h-4 w-4" />}
