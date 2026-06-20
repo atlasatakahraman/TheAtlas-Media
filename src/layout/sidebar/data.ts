@@ -73,32 +73,32 @@ export function getSidebarMenuGroups(): MenuGroup[] {
 						{
 							title: "Single Video",
 							icon: LucideFileVideo2,
-							url: "/youtube/download/video",
+							url: "/youtube/download#video",
 						},
 						{
 							title: "Playlist",
 							icon: LucideListVideo,
-							url: "/youtube/download/playlist",
+							url: "/youtube/download#playlist",
 						},
 						{
 							title: "Channel",
 							icon: LucideUser,
-							url: "/youtube/download/channel",
+							url: "/youtube/download#channel",
 						},
 						{
 							title: "Audio Only",
 							icon: LucideMusic,
-							url: "/youtube/download/audio",
+							url: "/youtube/download#audio",
 						},
 						{
 							title: "Subtitles",
 							icon: LucideCaptions,
-							url: "/youtube/download/subtitles",
+							url: "/youtube/download#subtitles",
 						},
 						{
 							title: "Thumbnail",
 							icon: LucideImageDown,
-							url: "/youtube/download/thumbnail",
+							url: "/youtube/download#thumbnail",
 						},
 					],
 				},

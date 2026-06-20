@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
 	trailingSlash: true,
 
 	experimental: {
-		viewTransition: true,
+		viewTransition: false,
 	},
 
 	images: {
