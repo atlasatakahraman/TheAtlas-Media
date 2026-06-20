@@ -1,4 +1,3 @@
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"

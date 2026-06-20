@@ -1,19 +1,11 @@
 // next@16.2.6 — verified against node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md on 2026-05-31
 'use client';
 
-import type { Window } from '@tauri-apps/api/window';
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { openUrl } from "@tauri-apps/plugin-opener";
-import { createLucideIcon, LucideMaximize, LucideMinimize, LucideMinus, LucideX, Maximize, Maximize2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { LucideMinus, LucideX, Maximize, Maximize2 } from "lucide-react";
 
-import { getCurrentWebviewWindow, WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { Logger } from "@/lib/utils";
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import Loading from "@/app/loading";
 import { useWindow } from "@/hooks/use-window";
 import { PLATFORM } from "@/lib/window-env";
 import { useMaximize } from "@/hooks/use-maximize";

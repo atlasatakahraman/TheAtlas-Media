@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { MenuItem, RenderMenuItemProps } from "./types";
 import { useRouter } from "next/navigation";
 

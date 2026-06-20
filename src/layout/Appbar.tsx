@@ -1,11 +1,11 @@
 // next@16.2.6 — verified against node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md on 2026-05-31
 'use client';
 
-import { Sidebar, SidebarHeader, SidebarContent, SidebarTrigger, useSidebar, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
+import { Sidebar, SidebarHeader, SidebarContent, useSidebar, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { openLink, cn } from "@/lib/utils";
+import { openLink } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { getSidebarMenuGroups } from "./sidebar/data";
@@ -14,7 +14,7 @@ import type { MenuItem } from "./sidebar/types";
 
 export default function Appbar() {
 
-	const { open, toggleSidebar } = useSidebar();
+	const { open } = useSidebar();
 	const sidebarMenuGroups = useMemo(() => getSidebarMenuGroups(), []);
 	const [searchQuery, setSearchQuery] = useState("");
 
@@ -84,7 +84,7 @@ export default function Appbar() {
 						</div>
 					</div>
 				)}
-				<ScrollArea className="h-full w-full [&_[data-slot=scroll-area-scrollbar]]:hidden">
+				<ScrollArea className="h-full w-full **:data-[slot=scroll-area-scrollbar]:hidden">
 					<div className="pl-2 pr-3 pb-4">
 						{filteredMenuGroups.map((group) => (
 							<SidebarGroup key={group.label}>

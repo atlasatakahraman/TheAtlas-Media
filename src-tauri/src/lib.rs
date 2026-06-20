@@ -4,8 +4,6 @@ mod commands;
 
 use std::sync::OnceLock;
 
-use crate::DisplayServer::Wayland;
-
 static DISPLAY_SERVER: OnceLock<DisplayServer> = OnceLock::new();
 static COMPOSITING_DISABLED: OnceLock<bool> = OnceLock::new();
 

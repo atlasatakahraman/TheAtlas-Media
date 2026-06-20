@@ -5,7 +5,6 @@ import {
 	LucideImage,
 	LucideMusic,
 	LucideList,
-	LucideSearch,
 	LucideSettings,
 	LucideHistory,
 	LucideFileVideo2,
@@ -24,12 +23,10 @@ import {
 	LucideGauge,
 	LucideRatio,
 	LucideVolume2,
-	LucideFileText,
 	LucideLayoutGrid,
 	LucideHardDrive,
 	LucideFolderOpen,
 	LucideDatabase,
-	LucideShield,
 	LucideWrench,
 	LucideTerminal,
 	LucidePalette,
@@ -57,11 +54,9 @@ import {
 	LucidePackage,
 	LucideZap,
 	LucideBox,
-	LucideChevronRight,
 	LucideGrid2x2,
 } from "lucide-react";
 import type { MenuGroup } from "./types";
-import { useRouter } from "next/navigation";
 
 export function getSidebarMenuGroups(): MenuGroup[] {
 	return [
