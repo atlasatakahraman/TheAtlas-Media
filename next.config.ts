@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
 
 	trailingSlash: true,
 
+	experimental: {
+		viewTransition: true,
+	},
+
 	images: {
 		unoptimized: true,
 	},

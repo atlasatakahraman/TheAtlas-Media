@@ -8,7 +8,9 @@ import { Sidebar, SidebarContent, SidebarHeader, SidebarProvider, useSidebar } f
 import { Badge } from "@/components/ui/badge";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import Appbar from "../Appbar";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import Loading from "@/app/loading";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export default function AppView({ children }: ViewProps) {
 

@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import type { MenuItem, RenderMenuItemProps } from "./types";
+import { useRouter } from "next/navigation";
 
 function containsActiveUrl(item: MenuItem, pathname: string): boolean {
 	const normalized = pathname.length > 1 && pathname.endsWith("/")
@@ -50,6 +51,7 @@ const RenderMenuItem = ({
 }: RenderMenuItemProps) => {
 	const itemPath = `${parentPath}-${item.title}`;
 	const { open: sidebarOpen } = useSidebar();
+	const router = useRouter();
 
 	const isActive = useMemo(
 		() => item.items ? containsActiveUrl(item, "") : false,
@@ -143,7 +145,7 @@ const RenderMenuItem = ({
 					id={`submenu-${itemPath}`}
 					data-state={isExpanded && sidebarOpen ? "open" : "closed"}
 					className={cn(
-						"grid grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] transition-[grid-template-rows] duration-300 ease-in-out",
+						"grid grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] transition-[grid-template-rows, opacity] duration-300 ease-in-out",
 						isExpanded && sidebarOpen
 							? "opacity-100"
 							: "opacity-0"
@@ -185,10 +187,11 @@ const RenderMenuItem = ({
 
 	const MenuComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
 
+
 	if (item.url) {
 
 		return (
-			<MenuComponent onClick={item.action} className="cursor-pointer">
+			<MenuComponent onClick={() => router.push(item.url!)} className="cursor-pointer">
 				{item.icon && <item.icon className="h-4 w-4" />}
 				<span className="flex-1">
 					<HighlightText text={item.title} query={searchQuery} />

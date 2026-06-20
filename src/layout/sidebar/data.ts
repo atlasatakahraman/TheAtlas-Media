@@ -69,7 +69,7 @@ export function getSidebarMenuGroups(): MenuGroup[] {
 		// MEDIA DOWNLOAD TOOLS — yt-dlp powered download & metadata extraction
 		// =====================================================================
 		{
-			label: "Media Download Tools",
+			label: "Youtube Tools",
 			items: [
 				{
 					title: "Download",
@@ -78,7 +78,7 @@ export function getSidebarMenuGroups(): MenuGroup[] {
 						{
 							title: "Single Video",
 							icon: LucideFileVideo2,
-							url: "/youtube/video",
+							url: "/youtube/download/video",
 						},
 						{
 							title: "Playlist",
