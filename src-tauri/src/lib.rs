@@ -5,6 +5,7 @@ mod commands;
 use std::sync::OnceLock;
 
 static DISPLAY_SERVER: OnceLock<DisplayServer> = OnceLock::new();
+#[allow(dead_code)]
 static COMPOSITING_DISABLED: OnceLock<bool> = OnceLock::new();
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
