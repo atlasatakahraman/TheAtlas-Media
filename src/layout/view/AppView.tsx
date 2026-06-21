@@ -8,12 +8,15 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import Appbar from "../Appbar";
 import { useEffect, useRef, useState } from "react";
 import { Logger } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 export default function AppView({ children }: ViewProps) {
 
 	const [sidebarSearch, setSidebarSearch] = useState<HTMLElement | null>(null);
 
-	const mount = useRef(false);
+	const mountRef = useRef(false);
+
+	const pathname = usePathname();
 
 	function handleSidebarSearchFocus(e: KeyboardEvent, input: HTMLElement, shouldPrevent: boolean = true): boolean {
 		if (!input) {
@@ -32,8 +35,8 @@ export default function AppView({ children }: ViewProps) {
 	}
 
 	useEffect(() => {
-		if (mount.current) return;
-		mount.current = true;
+		if (mountRef.current) return;
+		mountRef.current = true;
 		setSidebarSearch(document.getElementById("sidebar-search"))
 	}, [])
 
@@ -74,13 +77,13 @@ export default function AppView({ children }: ViewProps) {
 	return (
 		<div className="flex">
 			<SidebarProvider className="w-fit" defaultOpen={true}>
-				<Appbar></Appbar>
+				<Appbar ></Appbar>
 			</SidebarProvider>
 			<div className="flex-1 flex flex-col h-screen">
 				<div>
 					<Header></Header>
 				</div>
-				<div className="flex-1 px-2 py-1 overflow-auto">
+				<div key={pathname} className="flex-1 overflow-auto">
 					{children}
 				</div>
 			</div>

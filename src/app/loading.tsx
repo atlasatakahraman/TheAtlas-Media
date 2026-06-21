@@ -13,17 +13,16 @@ export const YoutubeLoadingSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props
 				r="20"
 				fill="none"
 				stroke="currentColor"
-				strokeWidth="1.5"
+				strokeWidth="2"
 				strokeLinecap="round"
 			/>
 		</svg>
 	);
 };
 
-
 export default function Loading() {
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+		<div className="flex h-full w-full items-center justify-center bg-secondary backdrop-blur-sm">
 			<div className="relative flex flex-col items-center gap-4">
 				<YoutubeLoadingSvg />
 			</div>

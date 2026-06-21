@@ -5,13 +5,13 @@ import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { openLink, replaceTurkishLetters } from "@/lib/utils";
+import { cn, openLink, replaceTurkishLetters } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { getSidebarMenuGroups } from "./sidebar/data";
 import RenderMenuItem from "./sidebar/render-menu-item";
 import type { MenuItem } from "./sidebar/types";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export default function Appbar() {
 
@@ -25,8 +25,6 @@ export default function Appbar() {
 		if (!searchQuery.trim()) return sidebarMenuGroups;
 
 		const query = replaceTurkishLetters(searchQuery.toLowerCase());
-
-
 
 		const filterItem = (item: MenuItem): MenuItem | null => {
 
@@ -77,7 +75,7 @@ export default function Appbar() {
 						className="hover:cursor-pointer font-sans text-sm p-3 shrink-0">Media</Badge>
 				</div>
 			</SidebarHeader>
-			<SidebarContent className="bg-secondary flex-1 border-r border-sidebar-border text-start **:whitespace-nowrap">
+			<SidebarContent className='bg-secondary flex-1 text-start **:whitespace-nowrap border-r border-sidebar-border'>
 				<div className="px-3 py-2">
 					<div className="relative">
 						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
