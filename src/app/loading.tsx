@@ -1,4 +1,4 @@
-// next@16.2.6 — verified against node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/loading.md on 2026-05-31
+// next@16.2.9 — verified against node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/loading.md on 2026-06-21
 export const YoutubeLoadingSvg: React.FC<React.SVGProps<SVGSVGElement>> = (props) => {
 	return (
 		<svg

@@ -32,7 +32,7 @@ D8_DIRS=()
 
 echo "Checking for missing D8 verification stamp..."
 if [ ${#D8_DIRS[@]} -gt 0 ]; then
-    MISSING_STAMP_FILES=$(rg "${RG_OPTS[@]}" --files-without-match "next@16.2.6 — verified against node_modules/next/dist/docs/" -g "*.tsx" "${D8_DIRS[@]}" 2>/dev/null || true)
+    MISSING_STAMP_FILES=$(rg "${RG_OPTS[@]}" --files-without-match "next@16.2.9 — verified against node_modules/next/dist/docs/" -g "*.tsx" "${D8_DIRS[@]}" 2>/dev/null || true)
     if [ -n "$MISSING_STAMP_FILES" ]; then
       echo "The following .tsx files are missing the Next 16 verification stamp:"
       echo "$MISSING_STAMP_FILES"
