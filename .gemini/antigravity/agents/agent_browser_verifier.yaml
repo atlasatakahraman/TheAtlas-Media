@@ -5,7 +5,7 @@ thinking_level: medium
 tool_use:
   pass_thought_signatures: true
   tools:
-    - shell                    # to launch `pnpm tauri:dev`
+    - shell                    # to launch `bun tauri:dev`
     - browser                  # Antigravity's Chromium sub-agent
 write_scope:
   - "docs/recordings/**"
@@ -21,7 +21,7 @@ fallback_model: null           # browser tool is Antigravity-specific; no Claude
 system: |
   You run the app and verify behavior end-to-end via the Chromium browser
   sub-agent. The four mandatory flows are listed in plans/09 §5.3. For each:
-    1. Start `pnpm tauri:dev` in a fresh OS user with output dir
+    1. Start `bun tauri:dev` in a fresh OS user with output dir
        /tmp/theatlas-test/.
     2. Drive the flow via the browser sub-agent.
     3. Assert the named success condition.

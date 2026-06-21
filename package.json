@@ -1,19 +1,20 @@
 {
 	"name": "theatlas-media",
-	"packageManager": "pnpm@11.8.0",
 	"engines": {
-		"node": ">=20.9",
-		"pnpm": ">=10.33"
+		"bun": ">=1.3.14"
 	},
 	"version": "0.0.1",
 	"private": true,
 	"scripts": {
-		"dev": "next dev",
-		"build": "next build",
-		"start": "next start",
+		"dev": "tauri dev",
+		"build": "tauri build",
+		"icon": "tauri icon src/assets/TheAtlasMediaW2048.png",
+		"next:dev": "next dev",
+		"next:build": "next build",
+		"next:start": "next start",
 		"lint": "eslint",
 		"tauri:dev": "tauri dev",
-		"tauri:build": "tauri icon src/assets/TheAtlasMediaW2048.png && tauri build"
+		"tauri:build": "bun icon && tauri build"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.6.0",
@@ -21,7 +22,7 @@
 		"@tauri-apps/cli": "^2.11.3",
 		"@tauri-apps/plugin-opener": "^2.5.4",
 		"class-variance-authority": "^0.7.1",
-		"cli": "link:@tauri-apps/cli",
+		"cli": "npm:@tauri-apps/cli@^2.11.3",
 		"clsx": "^2.1.1",
 		"cmdk": "^1.1.1",
 		"date-fns": "^4.4.0",
@@ -44,12 +45,12 @@
 	},
 	"devDependencies": {
 		"@tailwindcss/postcss": "^4.3.1",
-		"@types/node": "^20.19.43",
+		"@types/node": "^22.0.0",
 		"@types/react": "^19.2.17",
 		"@types/react-dom": "^19.2.3",
 		"eslint": "^9.39.4",
 		"eslint-config-next": "16.2.9",
 		"tailwindcss": "^4.3.1",
-		"typescript": "^5.9.3"
+		"typescript": "^6.0.3"
 	}
 }

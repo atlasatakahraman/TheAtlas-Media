@@ -8,7 +8,7 @@ import {
 	SidebarMenuSubItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
+import { cn, replaceTurkishLetters } from "@/lib/utils";
 import { ChevronRight } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { MenuItem, RenderMenuItemProps } from "./types";
@@ -25,22 +25,50 @@ function containsActiveUrl(item: MenuItem, pathname: string): boolean {
 	return false;
 }
 
+function escapeRegExp(string: string) {
+	return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function makeTurkishRegex(query: string): RegExp {
+	const normalizedQuery = replaceTurkishLetters(query.toLowerCase());
+	const regexPattern = normalizedQuery
+		.split('')
+		.map(char => {
+			const escaped = escapeRegExp(char);
+			if (escaped === 'g') return '[gğĞ]';
+			if (escaped === 'u') return '[uüÜ]';
+			if (escaped === 's') return '[sşŞ]';
+			if (escaped === 'i') return '[ıiİI]';
+			if (escaped === 'o') return '[oöÖ]';
+			if (escaped === 'c') return '[cçÇ]';
+			return escaped;
+		})
+		.join('');
+	return new RegExp(`(${regexPattern})`, 'gi');
+}
+
 const HighlightText = ({ text, query }: { text: string; query?: string }) => {
-	if (!query) return <>{text}</>;
-	const parts = text.split(new RegExp(`(${query})`, 'gi'));
-	return (
-		<>
-			{parts.map((part, i) =>
-				part.toLowerCase() === query.toLowerCase() ? (
-					<span key={i} className="font-semibold text-primary">
-						{part}
-					</span>
-				) : (
-					<span key={i}>{part}</span>
-				)
-			)}
-		</>
-	);
+	if (!query || !query.trim()) return <>{text}</>;
+	if (makeTurkishRegex(query) && text.split(makeTurkishRegex(query)) && replaceTurkishLetters(query.toLowerCase())) {
+		const regex = makeTurkishRegex(query);
+		const parts = text.split(regex);
+		const normalizedQuery = replaceTurkishLetters(query.toLowerCase());
+		return (
+			<>
+				{parts.map((part, i) =>
+					replaceTurkishLetters(part.toLowerCase()) === normalizedQuery ? (
+						<span key={i} className="font-semibold text-primary">
+							{part}
+						</span>
+					) : (
+						<span key={i}>{part}</span>
+					)
+				)}
+			</>
+		);
+	} else {
+		return <>{text}</>;
+	}
 };
 
 const RenderMenuItem = ({

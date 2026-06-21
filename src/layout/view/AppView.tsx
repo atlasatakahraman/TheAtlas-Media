@@ -6,8 +6,70 @@ import { ViewProps } from "./types";
 import Header from "../header/Header";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import Appbar from "../Appbar";
+import { useEffect, useRef, useState } from "react";
+import { Logger } from "@/lib/utils";
 
 export default function AppView({ children }: ViewProps) {
+
+	const [sidebarSearch, setSidebarSearch] = useState<HTMLElement | null>(null);
+
+	const mount = useRef(false);
+
+	function handleSidebarSearchFocus(e: KeyboardEvent, input: HTMLElement, shouldPrevent: boolean = true): boolean {
+		if (!input) {
+			Logger.error("Could not find", input);
+			return false;
+		}
+		if (shouldPrevent) e.preventDefault();
+
+		if (document.activeElement === input) {
+			input.blur();
+		} else {
+			input.focus()
+		}
+
+		return true;
+	}
+
+	useEffect(() => {
+		if (mount.current) return;
+		mount.current = true;
+		setSidebarSearch(document.getElementById("sidebar-search"))
+	}, [])
+
+	useEffect(() => {
+		if (sidebarSearch === null || !(sidebarSearch instanceof HTMLInputElement)) return;
+
+		const handleKeyDown = (event: KeyboardEvent) => {
+
+			if (event.key === "Escape") {
+				const current = document.activeElement instanceof HTMLInputElement ? document.activeElement as HTMLInputElement : null;
+				current?.blur();
+				return;
+			}
+
+			if (
+				event.key === "f" &&
+				(event.metaKey || event.ctrlKey)
+			) {
+				handleSidebarSearchFocus(event, sidebarSearch)
+				return;
+			}
+
+			if (document.activeElement !== document.body || (event.metaKey || (event.ctrlKey && !(event.ctrlKey && event.key === "a")) || event.altKey || event.shiftKey || event.key === ' ' || event.key === 'Enter' || event.key === 'Escape')) {
+				return;
+			};
+
+			sidebarSearch.setSelectionRange(sidebarSearch.selectionStart || sidebarSearch.value.length, sidebarSearch.selectionStart || sidebarSearch.value.length);
+
+
+
+			handleSidebarSearchFocus(event, sidebarSearch, false);
+
+		}
+		window.addEventListener("keydown", handleKeyDown)
+		return () => window.removeEventListener("keydown", handleKeyDown)
+	}, [sidebarSearch])
 
 	return (
 		<div className="flex">

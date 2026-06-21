@@ -2,10 +2,11 @@
 'use client';
 
 
+
 export default function MainPage() {
 
 
 	return (
-		<>Main..</>
+		<>Main</>
 	)
 }

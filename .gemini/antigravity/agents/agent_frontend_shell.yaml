@@ -7,7 +7,7 @@ tool_use:
   tools:
     - file_read
     - file_write
-    - shell                  # pnpm tsc / lint
+    - shell                  # bun tsc / lint
 skills:
   - next-16-static-client
   - animation-r1-r4

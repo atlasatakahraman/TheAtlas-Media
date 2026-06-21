@@ -5,7 +5,7 @@ The project uses `shadcn@4.8` with `tw-animate-css` + Tailwind v4 + Base UI + Ra
 To add a component:
 
 ```bash
-pnpm dlx shadcn@4.8 add <component>
+bunx shadcn@4.8 add <component>
 ```
 
 After the install, **diff** the change. The generator may pull in dev-only deps or modify `components.json` in unwanted ways — revert anything outside `components/ui/<component>/`.

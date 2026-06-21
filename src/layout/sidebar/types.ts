@@ -1,6 +1,7 @@
 export type MenuItem = {
 	title: string;
 	url?: string;
+	short_url?: string;
 	icon?: React.ComponentType<{ className?: string }>;
 	items?: MenuItem[];
 	action?: () => void;

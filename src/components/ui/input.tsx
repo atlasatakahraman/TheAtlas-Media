@@ -8,38 +8,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 		const inputRef = React.useRef<HTMLInputElement>(null)
 		const cursorRef = React.useRef<HTMLDivElement>(null)
 
-		// Expose ref securely
-		React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement)
-
-		const [isFocused, setIsFocused] = React.useState(false)
-
-		const physicsRef = React.useRef({
-			currentX: 0,
-			targetX: 0,
-			velocity: 0,
-			animating: false,
-			initialized: false,
-		});
-
-		const canvasRef = React.useRef<CanvasRenderingContext2D | null>(null)
-		const fontCache = React.useRef({ font: "", paddingLeft: 0, letterSpacing: "" })
-
-		React.useLayoutEffect(() => {
-			if (!canvasRef.current) {
-				const canvas = document.createElement("canvas")
-				canvasRef.current = canvas.getContext("2d")
-			}
-			if (inputRef.current) {
-				const style = window.getComputedStyle(inputRef.current)
-				fontCache.current = {
-					font: `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
-					paddingLeft: parseFloat(style.paddingLeft) || 0,
-					letterSpacing: style.letterSpacing !== 'normal' ? style.letterSpacing : "0px"
-				}
-			}
-			updateCursorPosition()
-		}, [className]) // re-measure font if className changes
-
 		const animateCursor = React.useCallback(() => {
 			const state = physicsRef.current
 			if (!cursorRef.current) {
@@ -91,7 +59,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 			ctx.font = fontCache.current.font
 			// Support for modern canvas letterSpacing API (Chrome 99+)
 			if ('letterSpacing' in ctx) {
-				; (ctx as any).letterSpacing = fontCache.current.letterSpacing
+				; (ctx).letterSpacing = fontCache.current.letterSpacing
 			}
 
 			const textWidth = ctx.measureText(textToMeasure).width
@@ -116,6 +84,40 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 		const handleSync = () => {
 			requestAnimationFrame(updateCursorPosition)
 		}
+
+		// Expose ref securely
+		React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement)
+
+		const [isFocused, setIsFocused] = React.useState(false)
+
+		const physicsRef = React.useRef({
+			currentX: 0,
+			targetX: 0,
+			velocity: 0,
+			animating: false,
+			initialized: false,
+		});
+
+		const canvasRef = React.useRef<CanvasRenderingContext2D | null>(null)
+		const fontCache = React.useRef({ font: "", paddingLeft: 0, letterSpacing: "" })
+
+		React.useLayoutEffect(() => {
+			if (!canvasRef.current) {
+				const canvas = document.createElement("canvas")
+				canvasRef.current = canvas.getContext("2d")
+			}
+			if (inputRef.current) {
+				const style = window.getComputedStyle(inputRef.current)
+				fontCache.current = {
+					font: `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+					paddingLeft: parseFloat(style.paddingLeft) || 0,
+					letterSpacing: style.letterSpacing !== 'normal' ? style.letterSpacing : "0px"
+				}
+			}
+			updateCursorPosition()
+		}, [className, updateCursorPosition]) // re-measure font if className changes
+
+
 
 		// Run sync when external values change
 		React.useLayoutEffect(() => {
@@ -153,7 +155,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 						"disabled:pointer-events-none disabled:cursor-not-allowed disabled:bg-input/50 disabled:opacity-50",
 						"aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
 						"dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
-						"[caret-color:transparent] z-10 relative", // Hide native caret
+						"caret-transparent z-10 relative", // Hide native caret
 						className
 					)}
 					{...props}

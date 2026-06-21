@@ -1,0 +1,6 @@
+[install]
+# Block native builds we don't need (replaces pnpm-workspace.yaml ignoredBuiltDependencies):
+# - sharp: Next.js image optimizer (we use unoptimized: true)
+# - unrs-resolver: native module resolver
+# - msw: mock service worker native bindings
+ignore = ["sharp", "unrs-resolver", "msw"]

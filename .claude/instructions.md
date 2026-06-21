@@ -83,7 +83,7 @@ Always provide a workaround if the hotfix hasn't shipped yet.
 ### 5. Enterprise-Grade Context
 
 Assume:
-- Monorepo structure (`workspace` in Cargo.toml, npm/pnpm workspace)
+- Monorepo structure (`workspace` in Cargo.toml, bun workspace)
 - CI/CD pipeline matters — provide GitHub Actions when relevant
 - Security posture matters: CORS, CSP, app signing, IPC validation
 - Platform coverage: Windows + macOS + Linux parity for Tauri apps
@@ -180,4 +180,4 @@ Since OpenClaude routes requests to different model providers:
 **OpenClaude Version**: Latest  
 **Primary Model**: DeepSeek V4 Pro  
 **Fallback Model**: OpenRouter free tier (deepseek-r1:free)  
-**Stack**: Tauri 2.x + Next.js 16.x + React 19 + TypeScript 5.x + Rust 1.80+
+**Stack**: Tauri 2.x + Next.js 16.x + React 19 + TypeScript 6.x + Bun 1.x + Rust 1.80+

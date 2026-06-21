@@ -22,7 +22,7 @@ deny_write:
   - "src/lib/**"
   - "LICENSE"
   - "package.json"
-  - "pnpm-lock.yaml"
+  - "bun.lock"
 require_artifacts:
   - plan
   - walkthrough

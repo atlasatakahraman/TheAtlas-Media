@@ -19,7 +19,7 @@ write_scope:
   - "next.config.ts"           # only with explicit operator approval per mission
 deny_write:
   - "package.json"
-  - "pnpm-lock.yaml"
+  - "bun.lock"
   - "src-tauri/Cargo.toml"     # additive only, via agent_contracts
 require_artifacts:
   - plan

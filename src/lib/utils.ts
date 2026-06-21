@@ -14,6 +14,24 @@ export function openLink(href: string) {
 	}
 }
 
+export function replaceTurkishLetters(str: string): string {
+	return str
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/ğ/g, 'g')
+		.replace(/Ğ/g, 'g')
+		.replace(/ü/g, 'u')
+		.replace(/Ü/g, 'u')
+		.replace(/ş/g, 's')
+		.replace(/Ş/g, 's')
+		.replace(/ı/g, 'i')
+		.replace(/İ/g, 'i')
+		.replace(/ö/g, 'o')
+		.replace(/Ö/g, 'o')
+		.replace(/ç/g, 'c')
+		.replace(/Ç/g, 'c');
+}
+
 const logStyle = (bgColor: string) =>
 	`background-color: ${bgColor}; color: #ffffff; padding: 1px 8px; border-radius: 4px; font-weight: 600; font-family: monospace; font-size: 10px;`;
 

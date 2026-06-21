@@ -21,9 +21,9 @@ system: |
     cargo fmt --check
     cargo clippy --all-targets -- -D warnings
     cargo test
-    pnpm tsc --noEmit
-    pnpm lint
-    pnpm test
+    bun tsc --noEmit
+    bun lint
+    bun test
     scripts/check-agents-rules.sh
     scripts/check-animation-rules.sh
   Post an inline comment on every violation citing the D-number or plan
