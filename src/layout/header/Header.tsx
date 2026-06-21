@@ -10,10 +10,6 @@ import { useWindow } from "@/hooks/use-window";
 import { PLATFORM } from "@/lib/window-env";
 import { useMaximize } from "@/hooks/use-maximize";
 import { getWin } from '@/hooks/get-window';
-import { YoutubeLoadingSvg } from "@/app/loading";
-import { cn } from "@/lib/utils";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
 
 
 

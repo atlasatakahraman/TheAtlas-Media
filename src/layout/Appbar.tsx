@@ -5,13 +5,13 @@ import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { cn, openLink, replaceTurkishLetters } from "@/lib/utils";
+import { openLink, replaceTurkishLetters } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { getSidebarMenuGroups } from "./sidebar/data";
 import RenderMenuItem from "./sidebar/render-menu-item";
 import type { MenuItem } from "./sidebar/types";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function Appbar() {
 

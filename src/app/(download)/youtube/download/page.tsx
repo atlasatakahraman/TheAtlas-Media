@@ -5,8 +5,6 @@ export default function YoutubeDownloadPage() {
 	return (
 		<div className="flex-col gap-4 flex">
 			<Input className="w-md mx-auto" id="video"></Input>
-			<Input className="w-md mx-auto" id="playlist"></Input>
-			<Input className="w-md mx-auto" id="channel"></Input>
 		</div>
 	)
 }
