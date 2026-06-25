@@ -1,7 +1,7 @@
 'use client';
 
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
+import * as React from "react";
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 	({ className, type, ...props }, ref) => {
@@ -18,7 +18,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 			const diff = state.targetX - state.currentX
 
 			// Higher Lerp factor (0.75) for ultra-fast, snappy movement with minimal delay
-			state.currentX += diff * 0.45
+			state.currentX += diff * 0.20
 			state.velocity = diff * 0.45 // Track pseudo-velocity for sleep condition
 
 			// Positional Stretching
@@ -156,6 +156,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 						"aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 md:text-sm",
 						"dark:bg-input/30 dark:disabled:bg-input/80 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
 						"caret-transparent z-10 relative", // Hide native caret
+						"selection:bg-primary selection:text-secondary",
 						className
 					)}
 					{...props}
@@ -180,4 +181,4 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 )
 Input.displayName = "Input"
 
-export { Input }
+export { Input };
