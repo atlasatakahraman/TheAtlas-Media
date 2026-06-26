@@ -109,7 +109,6 @@ export default function Header() {
 	const windowState = useWindow();
 	const isDragRegion = windowState.status === 'loading' || windowState.caps.canSetPosition;
 
-	const operatingSystemState = useOperatingSystem();
 
 	return (
 		<div
