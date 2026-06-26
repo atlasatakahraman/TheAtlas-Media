@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { LucideMinus, LucideX, Maximize, Maximize2 } from "lucide-react";
 
 import { useWindow } from "@/hooks/use-window";
-import { PLATFORM } from "@/lib/window-env";
+import { PLATFORM } from "@/lib/types";
 import { useMaximize } from "@/hooks/use-maximize";
 import { getWin } from '@/hooks/get-window';
-
-
+import { useOperatingSystem } from "@/hooks/use-system";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 interface ControlProps {
 	onClose: () => void,
@@ -106,8 +106,10 @@ export default function Header() {
 	const handleMinimize = () => getWin().minimize();
 	const handleMaximize = () => getWin().toggleMaximize();
 
-	const state = useWindow();
-	const isDragRegion = state.status === 'loading' || state.caps.canSetPosition;
+	const windowState = useWindow();
+	const isDragRegion = windowState.status === 'loading' || windowState.caps.canSetPosition;
+
+	const operatingSystemState = useOperatingSystem();
 
 	return (
 		<div
@@ -118,6 +120,9 @@ export default function Header() {
 				className='sticky flex-1 flex items-center text-sm px-2 select-none border-b border-sidebar-border'
 				data-tauri-drag-region={isDragRegion}
 			>
+				<div className="flex-1 flex justify-start md:hidden duration-500 animate-in slide-in-from-left-9 fade-in-0 transition-[opacity,transform] ease-out" data-tauri-drag-region>
+					<SidebarTrigger></SidebarTrigger>
+				</div>
 				<div className="flex-1 flex justify-end" data-tauri-drag-region>
 					{PLATFORM === 'darwin' ? (
 						<MacOSControls
@@ -130,9 +135,9 @@ export default function Header() {
 							onClose={handleClose}
 							onMinimize={handleMinimize}
 							onMaximize={handleMaximize}
-							canMaximize={state.status === 'loading' || state.caps.canMaximize}
-							canMinimize={state.status === 'loading' || state.caps.canMinimize}
-							loading={state.status === 'loading'}
+							canMaximize={windowState.status === 'loading' || windowState.caps.canMaximize}
+							canMinimize={windowState.status === 'loading' || windowState.caps.canMinimize}
+							loading={windowState.status === 'loading'}
 						/>
 					)}
 				</div>

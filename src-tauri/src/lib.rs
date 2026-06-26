@@ -2,11 +2,13 @@ use std::env;
 
 mod commands;
 
+use std::env::consts::OS;
 use std::sync::OnceLock;
 
 static DISPLAY_SERVER: OnceLock<DisplayServer> = OnceLock::new();
 #[allow(dead_code)]
 static COMPOSITING_DISABLED: OnceLock<bool> = OnceLock::new();
+static OPERATING_SYSTEM: OnceLock<OperatingSystem> = OnceLock::new();
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -14,6 +16,27 @@ pub enum DisplayServer {
     Wayland,
     X11,
     Other,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum OperatingSystem {
+    Windows,
+    Linux,
+    MacOS,
+    Other,
+}
+
+fn detect_operating_system() -> OperatingSystem {
+    if OS.contains("linux") {
+        OperatingSystem::Linux
+    } else if OS.contains("windows") {
+        OperatingSystem::Windows
+    } else if OS.contains("macos") {
+        OperatingSystem::MacOS
+    } else {
+        OperatingSystem::Other
+    }
 }
 
 fn detect_display_server() -> DisplayServer {
@@ -36,6 +59,13 @@ fn detect_display_server() -> DisplayServer {
 
     #[cfg(not(target_os = "linux"))]
     DisplayServer::Other
+}
+
+#[tauri::command]
+fn get_operating_system() -> OperatingSystem {
+    OPERATING_SYSTEM
+        .get_or_init(detect_operating_system)
+        .clone()
 }
 
 #[tauri::command]
@@ -65,11 +95,13 @@ pub fn run() {
         .plugin(tauri_plugin_os::init())
         .setup(|_app| {
             DISPLAY_SERVER.get_or_init(detect_display_server);
+            OPERATING_SYSTEM.get_or_init(detect_operating_system);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
             get_display_server,
             set_window_position,
+            get_operating_system,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

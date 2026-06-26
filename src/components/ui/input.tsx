@@ -18,7 +18,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 			const diff = state.targetX - state.currentX
 
 			// Higher Lerp factor (0.75) for ultra-fast, snappy movement with minimal delay
-			state.currentX += diff * 0.20
+			state.currentX += diff * 0.40
 			state.velocity = diff * 0.45 // Track pseudo-velocity for sleep condition
 
 			// Positional Stretching
@@ -172,7 +172,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
 					<div
 						ref={cursorRef}
 						className="h-[1.2em] bg-foreground"
-						style={{ transform: 'translate3d(0, -50%, 0)', width: '2px' }}
+						style={{ transform: 'translate3d(0, -50%, 0)', width: '1px' }}
 					/>
 				</div>
 			</div>

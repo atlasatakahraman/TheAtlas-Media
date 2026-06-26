@@ -5,9 +5,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { ViewProps } from "./types";
 import Header from "../header/Header";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import Appbar from "../Appbar";
+import Appbar from "../sidebar/Appbar";
 import { useEffect, useRef, useState } from "react";
-import { Logger } from "@/lib/utils";
+import { Logging } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 export default function AppView({ children }: ViewProps) {
@@ -20,7 +20,7 @@ export default function AppView({ children }: ViewProps) {
 
 	function handleSidebarSearchFocus(e: KeyboardEvent, input: HTMLElement, shouldPrevent: boolean = true): boolean {
 		if (!input) {
-			Logger.error("Could not find", input);
+			Logging.error("Could not find", input);
 			return false;
 		}
 		if (shouldPrevent) e.preventDefault();
@@ -75,20 +75,20 @@ export default function AppView({ children }: ViewProps) {
 	}, [sidebarSearch])
 
 	return (
-		<div className="flex">
-			<SidebarProvider className="w-fit" defaultOpen={true}>
+		<SidebarProvider defaultOpen={true}>
+			<div className="flex">
 				<Appbar ></Appbar>
-			</SidebarProvider>
-			<div className="flex-1 flex flex-col h-screen">
-				<div>
-					<Header></Header>
+				<div className="flex-1 flex flex-col h-screen">
+					<div>
+						<Header></Header>
+					</div>
+					<div key={pathname} className="flex-1 overflow-auto">
+						{children}
+					</div>
 				</div>
-				<div key={pathname} className="flex-1 overflow-auto">
-					{children}
-				</div>
+				<Toaster position="top-right" swipeDirections={["right", "top"]} richColors></Toaster>
 			</div>
+		</SidebarProvider>
 
-			<Toaster position="top-right" swipeDirections={["right", "top"]} richColors></Toaster>
-		</div>
 	)
 }

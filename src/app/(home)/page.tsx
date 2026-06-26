@@ -3,8 +3,7 @@
 
 export default function MainPage() {
 
-
 	return (
-		<>Main</>
+		<div className="flex justify-center items-center flex-1 h-full ">Main</div>
 	)
 }

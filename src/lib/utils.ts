@@ -35,7 +35,7 @@ export function replaceTurkishLetters(str: string): string {
 const logStyle = (bgColor: string) =>
 	`background-color: ${bgColor}; color: #ffffff; padding: 1px 8px; border-radius: 4px; font-weight: 600; font-family: monospace; font-size: 10px;`;
 
-export const Logger = {
+export const Logging = {
 	info: (msg: unknown, ...data: unknown[]) => console.log(`%c theatlas::info %c ${msg} ${data}`, logStyle("#00664e"), ""),
 	done: (msg: unknown, ...data: unknown[]) => console.log(`%c theatlas::success %c ${msg} ${data}`, logStyle("#4b882e"), ""),
 	warn: (msg: unknown, ...data: unknown[]) => console.log(`%c theatlas::warning %c ${msg} ${data}`, logStyle("#9b782c"), ""),

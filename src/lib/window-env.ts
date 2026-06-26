@@ -1,10 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
-import { platform } from "node:os";
 
-
-export const PLATFORM = platform();
-
-type DisplayServer = 'wayland' | 'x11' | 'other';
+import type { DisplayServer } from "./types";
 
 let _cachedDisplayServer: DisplayServer | null = null;
 let _pendingPromise: Promise<DisplayServer> | null = null;

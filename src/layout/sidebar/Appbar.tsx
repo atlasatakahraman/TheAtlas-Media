@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { openLink, replaceTurkishLetters } from "@/lib/utils";
 import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { getSidebarMenuGroups } from "./sidebar/data";
-import RenderMenuItem from "./sidebar/render-menu-item";
-import type { MenuItem } from "./sidebar/types";
+import { getSidebarMenuGroups } from "./data";
+import RenderMenuItem from "./render-menu-item";
+import type { MenuItem } from "./types";
 import { useRouter } from "next/navigation";
 
 export default function Appbar() {
@@ -61,7 +61,7 @@ export default function Appbar() {
 	}, [sidebarMenuGroups, searchQuery]);
 
 	return (
-		<Sidebar className="flex-1 min-w-16 border-none" collapsible="icon" side="left">
+		<Sidebar className="flex-1 min-w-16 border-none" collapsible="offcanvas" side="left">
 			<SidebarHeader className="bg-secondary h-16 p-0">
 				<div className="h-full w-full flex items-center justify-center gap-2 overflow-hidden px-2">
 					<button onClick={() => openLink("https://github.com/atlasatakahraman/TheAtlas")}
