@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <img src="./src/assets/TheAtlasB2048.png" alt="TheAtlas Media Logo" width="220" />
+  <img src="./src/assets/TheAtlasMediaW2048.png" alt="TheAtlas Media Logo" width="220" />
 </p>
 
 <h1 align="center">TheAtlas — Media</h1>
