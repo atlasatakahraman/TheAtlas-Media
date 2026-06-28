@@ -44,7 +44,7 @@ jobs:
                   toolchain: 1.89
 
             - name: Cargo Cache
-              uses: actions/cache@v4
+              uses: actions/cache@v6
               with:
                   path: |
                       ~/.cargo/registry
@@ -55,7 +55,7 @@ jobs:
                       ${{ runner.os }}-cargo-
 
             - name: Bun Cache
-              uses: actions/cache@v4
+              uses: actions/cache@v6
               with:
                   path: ~/.bun/install/cache
                   key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
