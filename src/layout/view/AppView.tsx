@@ -1,14 +1,13 @@
 // next@16.2.9 — verified against node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md on 2026-06-21
 'use client';
 
-import { Toaster } from "@/components/ui/sonner";
 import { ViewProps } from "./types";
 import Header from "../header/Header";
-import { SidebarProvider } from "@/components/ui/sidebar";
 import Appbar from "../sidebar/Appbar";
 import { useEffect, useRef, useState } from "react";
 import { Logging } from "@/lib/utils";
 import { usePathname } from "next/navigation";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function AppView({ children }: ViewProps) {
 
@@ -75,20 +74,15 @@ export default function AppView({ children }: ViewProps) {
 	}, [sidebarSearch])
 
 	return (
-		<SidebarProvider defaultOpen={true}>
-			<div className="flex">
-				<Appbar ></Appbar>
-				<div className="flex-1 flex flex-col h-screen">
-					<div>
-						<Header></Header>
-					</div>
-					<div key={pathname} className="flex-1 overflow-auto">
-						{children}
-					</div>
+		<SidebarProvider defaultOpen={true}
+		>
+			<Appbar />
+			<SidebarInset>
+				<Header></Header>
+				<div key={pathname} className="flex-1 min-w-0 overflow-auto">
+					{children}
 				</div>
-				<Toaster position="top-right" swipeDirections={["right", "top"]} richColors></Toaster>
-			</div>
+			</SidebarInset>
 		</SidebarProvider>
-
 	)
 }

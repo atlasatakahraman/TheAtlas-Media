@@ -6,6 +6,7 @@
 		"main"
 	],
 	"permissions": [
+		"core:webview:allow-internal-toggle-devtools",
 		"core:default",
 		"opener:default",
 		"core:window:allow-toggle-maximize",

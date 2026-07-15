@@ -120,7 +120,7 @@ function SidebarProvider({
 					} as React.CSSProperties
 				}
 				className={cn(
-					"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar",
+					"group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full",
 					className
 				)}
 				{...props}
@@ -151,7 +151,7 @@ function Sidebar({
 			<div
 				data-slot="sidebar"
 				className={cn(
-					"flex h-full w-(--sidebar-width) flex-col bg-sidebar text-sidebar-foreground",
+					"flex h-full w-[var(--sidebar-width)] flex-col bg-sidebar text-sidebar-foreground",
 					className
 				)}
 				{...props}
@@ -169,7 +169,7 @@ function Sidebar({
 					data-sidebar="sidebar"
 					data-slot="sidebar"
 					data-mobile="true"
-					className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+					className="w-[var(--sidebar-width)] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
 					style={
 						{
 							"--sidebar-width": SIDEBAR_WIDTH_MOBILE,
@@ -196,27 +196,39 @@ function Sidebar({
 			data-side={side}
 			data-slot="sidebar"
 		>
-			{/* This is what handles the sidebar gap on desktop */}
+			{/* This is what handles the sidebar gap on desktop.
+			    No transition here on purpose: this div has no content and no
+			    explicit height, so its box is entirely dependent on `width`
+			    resolving synchronously on first paint. A width transition can
+			    let it render at an interpolated/zero width for a frame if the
+			    --sidebar-width custom property commits a beat late (which is
+			    more likely in a static-export Tauri webview than a dev server). */}
 			<div
 				data-slot="sidebar-gap"
 				className={cn(
-					"relative w-(--sidebar-width) bg-transparent transition-[width] duration-200 ease-linear",
+					"relative w-[var(--sidebar-width)] bg-transparent",
 					"group-data-[collapsible=offcanvas]:w-0",
 					"group-data-[side=right]:rotate-180",
 					variant === "floating" || variant === "inset"
 						? "group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4)))]"
-						: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)"
+						: "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)]"
 				)}
 			/>
+			{/* Side offset resolved once in JS via the ternary below instead of
+			    chained data-[side=...]:group-data-[collapsible=...]: selectors.
+			    Same visual result, fewer compound arbitrary-selector utilities
+			    for the production CSS generator/minifier to round-trip. */}
 			<div
 				data-slot="sidebar-container"
-				data-side={side}
 				className={cn(
-					"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
+					"fixed inset-y-0 z-10 hidden h-svh w-[var(--sidebar-width)] transition-[left,right,width] duration-200 ease-linear md:flex",
+					side === "left"
+						? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
+						: "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
 					// Adjust the padding for floating and inset variants.
 					variant === "floating" || variant === "inset"
 						? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-						: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+						: "group-data-[collapsible=icon]:w-[var(--sidebar-width-icon)] group-data-[side=left]:border-r group-data-[side=right]:border-l",
 					className
 				)}
 				{...props}
@@ -224,7 +236,7 @@ function Sidebar({
 				<div
 					data-sidebar="sidebar"
 					data-slot="sidebar-inner"
-					className="flex size-full flex-col bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border"
+					className="flex size-full flex-col  bg-sidebar group-data-[variant=floating]:rounded-lg group-data-[variant=floating]:shadow-sm group-data-[variant=floating]:ring-1 group-data-[variant=floating]:ring-sidebar-border"
 				>
 					{children}
 				</div>

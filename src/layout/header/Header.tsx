@@ -10,7 +10,7 @@ import { useWindow } from "@/hooks/use-window";
 import { PLATFORM } from "@/lib/types";
 import { useMaximize } from "@/hooks/use-maximize";
 import { getWin } from '@/hooks/get-window';
-import { SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 
 interface ControlProps {
 	onClose: () => void,
@@ -111,7 +111,7 @@ export default function Header() {
 
 	return (
 		<div
-			className="flex-1 bg-secondary flex w-full h-16 select-none"
+			className="flex-1 bg-secondary flex w-full min-h-16  max-h-16 select-none"
 			data-tauri-drag-region={isDragRegion}
 		>
 			<div

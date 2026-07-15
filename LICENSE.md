@@ -113,7 +113,7 @@ Upon termination, you must destroy all copies of The Work in your possession. Te
 
 ## 8. Governing Law
 
-This license is governed by and construed in accordance with the laws of the **Republic of Türkiye**. Any disputes shall be resolved in the courts of **Aydın, Türkiye**.
+This license is governed by and construed in accordance with the laws of the **Republic of Türkiye**. Any disputes shall be resolved in the courts of **Aydin, Turkiye**.
 
 ---
 

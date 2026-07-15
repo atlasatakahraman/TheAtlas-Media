@@ -1,4 +1,5 @@
 // next@16.2.9 — verified against node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md on 2026-06-21
+
 'use client';
 
 import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
@@ -14,6 +15,7 @@ import type { MenuItem } from "./types";
 import { useRouter } from "next/navigation";
 
 export default function Appbar() {
+
 
 	const sidebarMenuGroups = useMemo(() => getSidebarMenuGroups(), []);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +63,7 @@ export default function Appbar() {
 	}, [sidebarMenuGroups, searchQuery]);
 
 	return (
-		<Sidebar className="flex-1 min-w-16 border-none" collapsible="offcanvas" side="left">
+		<Sidebar className="border-none no-scrollbar" collapsible="icon" variant="sidebar" side="left">
 			<SidebarHeader className="bg-secondary h-16 p-0">
 				<div className="h-full w-full flex items-center justify-center gap-2 overflow-hidden px-2">
 					<button onClick={() => openLink("https://github.com/atlasatakahraman/TheAtlas")}
@@ -75,7 +77,7 @@ export default function Appbar() {
 						className="hover:cursor-pointer font-sans text-sm p-3 shrink-0">Media</Badge>
 				</div>
 			</SidebarHeader>
-			<SidebarContent className='bg-secondary flex-1 text-start **:whitespace-nowrap border-r border-sidebar-border'>
+			<SidebarContent className='bg-secondary  flex-1 text-start **:whitespace-nowrap border-r border-sidebar-border'>
 				<div className="px-3 py-2">
 					<div className="relative">
 						<Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -100,7 +102,7 @@ export default function Appbar() {
 						/>
 					</div>
 				</div>
-				<ScrollArea className="h-full w-full **:data-[slot=scroll-area-scrollbar]:hidden">
+				<ScrollArea className="h-full w-full no-scrollbar **:data-[slot=scroll-area-scrollbar]:hidden">
 					<div className="pl-2 pr-3 pb-4">
 						{filteredMenuGroups.map((group) => (
 							<SidebarGroup key={group.label}>
@@ -119,6 +121,6 @@ export default function Appbar() {
 					</div>
 				</ScrollArea>
 			</SidebarContent>
-		</Sidebar >
+		</Sidebar>
 	)
 }

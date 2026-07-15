@@ -6,8 +6,8 @@
 	"build": {
 		"frontendDist": "../out",
 		"devUrl": "http://localhost:3000",
-		"beforeDevCommand": "bun next --webpack",
-		"beforeBuildCommand": "bun build"
+		"beforeDevCommand": "bun next --turbopack",
+		"beforeBuildCommand": "bun run next:build"
 	},
 	"app": {
 		"windows": [
@@ -18,6 +18,9 @@
 			}
 		],
 		"security": {
+			"dangerousDisableAssetCspModification": [
+				"style-src"
+			],
 			"csp": {
 				"default-src": [
 					"'self'"
@@ -46,6 +49,8 @@
 				],
 				"connect-src": [
 					"'self'",
+					"ipc:",
+					"http://ipc.localhost",
 					"localhost:*",
 					"ws://localhost:*",
 					"wss://localhost:*"

@@ -47,7 +47,7 @@ next-env.d.ts
 .next/
 out/
 target/
-
+src-tauri/icons
 # Dev logs (created during bun tauri dev runs)
 dev*.log
 

@@ -4,6 +4,6 @@
 export default function MainPage() {
 
 	return (
-		<div className="flex justify-center items-center flex-1 h-full ">Main</div>
+		<div className="flex flex-1 justify-center items-center h-full">Main</div>
 	)
 }

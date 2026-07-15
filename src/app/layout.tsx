@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import AppView from "@/layout/view/AppView";
+import { SidebarProvider } from "@/components/ui/sidebar";
 
 const sans = localFont({
 	src: "../fonts/sans-regular.woff2",
