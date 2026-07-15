@@ -1,4 +1,3 @@
-
 mod commands;
 
 use std::env::consts::OS;
