@@ -12,6 +12,10 @@ echo "Checking TypeScript types (full)..."
 if command -v bun >/dev/null 2>&1; then
     bun tsc --noEmit || { echo "✗ TypeScript errors — fix before commit"; exit 1; }
 fi
+echo "Generating Icons for compat"
+if [ -d src-tauri ] && command -v bun run icon >/dev/null 2>&1; then
+    (cd src-tauri && cargo clippy --all-targets -- -D warnings) || { echo "✗ Couldn't create icons for compat"}
+fi
 echo "Checking Rust formatting..."
 if [ -d src-tauri ] && command -v cargo >/dev/null 2>&1; then
     (cd src-tauri && cargo fmt --check) || { echo "✗ Rust formatting — run 'cd src-tauri && cargo fmt --all'"; exit 1; }
