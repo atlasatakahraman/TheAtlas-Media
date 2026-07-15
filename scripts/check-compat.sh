@@ -14,7 +14,7 @@ if command -v bun >/dev/null 2>&1; then
 fi
 echo "Generating Icons for compat"
 if [ -d src-tauri ] && command -v bun run icon >/dev/null 2>&1; then
-    (cd src-tauri && cargo clippy --all-targets -- -D warnings) || { echo "✗ Couldn't create icons for compat"}
+    (cd src-tauri && cargo clippy --all-targets -- -D warnings) || { echo "✗ Couldn't create icons for compat"})
 fi
 echo "Checking Rust formatting..."
 if [ -d src-tauri ] && command -v cargo >/dev/null 2>&1; then
