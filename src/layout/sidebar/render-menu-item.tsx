@@ -47,35 +47,88 @@ function makeTurkishRegex(query: string): RegExp {
 	return new RegExp(`(${regexPattern})`, 'gi');
 }
 
-const HighlightText = ({ text, query }: { text: string; query?: string }) => {
-	if (!query || !query.trim()) return <>{text}</>;
-	if (makeTurkishRegex(query) && text.split(makeTurkishRegex(query)) && replaceTurkishLetters(query.toLowerCase())) {
-		const regex = makeTurkishRegex(query);
-		const parts = text.split(regex);
-		const normalizedQuery = replaceTurkishLetters(query.toLowerCase());
-		return (
-			<>
-				{parts.map((part, i) =>
-					replaceTurkishLetters(part.toLowerCase()) === normalizedQuery ? (
-						<span key={i} className="font-semibold text-primary">
-							{part}
-						</span>
-					) : (
-						<span key={i}>{part}</span>
-					)
-				)}
-			</>
-		);
-	} else {
-		return <>{text}</>;
-	}
+const HighlightText = ({ text, query, fullMatch }: { text: string; query?: string; fullMatch?: boolean }) => {
+	const trimmedQuery = query?.trim().toLowerCase();
+
+	// Memoized per (text, query, fullMatch) — this renders once per menu item,
+	// so avoiding a fresh regex + split on every unrelated re-render (sibling
+	// expand/collapse, etc.) matters at tree scale.
+	const parts = useMemo(() => {
+		if (!trimmedQuery) return null;
+
+		// The query matched this item only through its short_url (not through the
+		// title itself) — there's no literal substring position to highlight, so
+		// the whole title is highlighted to signal "this is the match".
+		if (fullMatch) return [{ key: 0, part: text, match: true }];
+
+		const queryRegex = makeTurkishRegex(trimmedQuery);
+		const normalizedQuery = replaceTurkishLetters(trimmedQuery);
+
+		return text.split(queryRegex).map((part, i) => ({
+			key: i,
+			part,
+			match: replaceTurkishLetters(part.toLowerCase()) === normalizedQuery,
+		}));
+	}, [text, trimmedQuery, fullMatch]);
+
+	if (!parts) return <>{text}</>;
+
+	return (
+		<>
+			{parts.map(({ key, part, match }) =>
+				match ? (
+					<span key={key} className="font-semibold text-primary">
+						{part}
+					</span>
+				) : (
+					<span key={key}>{part}</span>
+				)
+			)}
+		</>
+	);
 };
+
+// Shared collapse primitive — a height+opacity transition via CSS grid rows.
+// Content stays mounted in both states; only the grid track animates, which is
+// what makes the transition possible (an unmounted node can't animate out).
+// Used both for a group's own expand/collapse toggle and — now — for hiding an
+// item that no longer matches an active search, so both cases animate identically.
+const Collapse = ({
+	open,
+	id,
+	ariaLabelledBy,
+	className,
+	children,
+}: {
+	open: boolean;
+	id?: string;
+	ariaLabelledBy?: string;
+	className?: string;
+	children: React.ReactNode;
+}) => (
+	<div
+		id={id}
+		data-state={open ? "open" : "closed"}
+		role={id ? "region" : undefined}
+		aria-labelledby={ariaLabelledBy}
+		className={cn(
+			"grid grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] transition-[grid-template-rows,opacity] duration-300 ease-in-out",
+			open ? "opacity-100" : "opacity-0",
+			className
+		)}
+	>
+		<div className="overflow-hidden min-h-0">
+			{children}
+		</div>
+	</div>
+);
 
 const RenderMenuItem = ({
 	item,
 	level = 0,
 	parentPath = "",
 	searchQuery,
+	visibleItems,
 }: RenderMenuItemProps) => {
 	const itemPath = `${parentPath}-${item.title}`;
 	const { open: sidebarOpen } = useSidebar();
@@ -109,12 +162,34 @@ const RenderMenuItem = ({
 	const hasChildren = item.items && item.items.length > 0;
 	const isExpanded = (searchQuery && searchQuery.trim().length > 0) ? true : openGroups[itemPath];
 
+	// Whether THIS item (title row + its whole subtree) should be shown at all.
+	// `visibleItems` undefined means no filter is active — everything is visible.
+	// This is independent from `isExpanded`, which only governs whether an
+	// already-visible group's children are expanded or collapsed.
+	const visible = !visibleItems || visibleItems.has(item);
+
+	// True when the active query matched this leaf item's short_url but not its
+	// title — the title still needs to light up so the match is visible even
+	// though no short_url badge is shown.
+	const highlightWholeTitle = useMemo(() => {
+		if (hasChildren || !searchQuery) return false;
+		const query = replaceTurkishLetters(searchQuery.trim().toLowerCase());
+		if (!query) return false;
+
+		const titleMatches = replaceTurkishLetters(item.title.toLowerCase()).includes(query);
+		if (titleMatches) return false;
+
+		return !!item.short_url && replaceTurkishLetters(item.short_url.toLowerCase()).includes(query);
+	}, [hasChildren, item.title, item.short_url, searchQuery]);
+
+	let content: React.ReactNode;
+
 	if (hasChildren) {
 		const SubMenuComponent = level === 0 ? SidebarMenuSub : "div";
 		const SubItemComponent = level === 0 ? SidebarMenuSubItem : "div";
 		const SubButtonComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
 
-		return (
+		content = (
 			<>
 				{level === 0 ? (
 					<SidebarMenuButton
@@ -169,60 +244,60 @@ const RenderMenuItem = ({
 						/>
 					</SubButtonComponent>
 				)}
-				<div
+				<Collapse
+					open={isExpanded && sidebarOpen}
 					id={`submenu-${itemPath}`}
-					data-state={isExpanded && sidebarOpen ? "open" : "closed"}
-					className={cn(
-						"grid grid-rows-[0fr] data-[state=open]:grid-rows-[1fr] transition-[grid-template-rows, opacity] duration-300 ease-in-out",
-						isExpanded && sidebarOpen
-							? "opacity-100"
-							: "opacity-0"
-					)}
-					role="region"
-					aria-labelledby={`button-${itemPath}`}
+					ariaLabelledBy={`button-${itemPath}`}
 				>
-					<div className="overflow-hidden min-h-0">
-						<SubMenuComponent className={level > 0 ? "ml-4 border-l pl-2" : ""}>
-							{item.items!.map((subItem, subIndex) => (
-								<SubItemComponent
-									key={`${subItem.title}-${subIndex}`}
-									className={cn(
-										"transition duration-200 ease-in-out",
-										isExpanded && sidebarOpen
-											? "translate-x-0 opacity-100"
-											: "-translate-x-4 opacity-0"
-									)}
-									style={{
-										transitionDelay: isExpanded && sidebarOpen
-											? `${subIndex * 50}ms`
-											: "0ms",
-									}}
-								>
-									<RenderMenuItem
-										item={subItem}
-										level={level + 1}
-										parentPath={itemPath}
-										searchQuery={searchQuery}
-									/>
-								</SubItemComponent>
-							))}
-						</SubMenuComponent>
-					</div>
-				</div>
+					<SubMenuComponent className={level > 0 ? "ml-4 border-l pl-2" : ""}>
+						{item.items!.map((subItem, subIndex) => (
+							<SubItemComponent
+								key={`${subItem.title}-${subIndex}`}
+								className={cn(
+									"transition duration-200 ease-in-out",
+									isExpanded && sidebarOpen
+										? "translate-x-0 opacity-100"
+										: "-translate-x-4 opacity-0"
+								)}
+								style={{
+									transitionDelay: isExpanded && sidebarOpen
+										? `${subIndex * 50}ms`
+										: "0ms",
+								}}
+							>
+								<RenderMenuItem
+									item={subItem}
+									level={level + 1}
+									parentPath={itemPath}
+									searchQuery={searchQuery}
+									visibleItems={visibleItems}
+								/>
+							</SubItemComponent>
+						))}
+					</SubMenuComponent>
+				</Collapse>
 			</>
 		);
-	}
+	} else {
+		const MenuComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
 
-	const MenuComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
-
-
-	if (item.url) {
-
-		return (
+		content = item.url ? (
 			<MenuComponent onClick={() => router.push(item.url!)} className="cursor-pointer">
 				{item.icon && <item.icon className="h-4 w-4" />}
 				<span className="flex-1">
-					<HighlightText text={item.title} query={searchQuery} />
+					<HighlightText text={item.title} query={searchQuery} fullMatch={highlightWholeTitle} />
+				</span>
+				{item.badge && (
+					<span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground ml-auto">
+						{item.badge}
+					</span>
+				)}
+			</MenuComponent>
+		) : (
+			<MenuComponent onClick={item.action} className="cursor-pointer">
+				{item.icon && <item.icon className="h-4 w-4" />}
+				<span className="flex-1">
+					<HighlightText text={item.title} query={searchQuery} fullMatch={highlightWholeTitle} />
 				</span>
 				{item.badge && (
 					<span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground ml-auto">
@@ -233,19 +308,10 @@ const RenderMenuItem = ({
 		);
 	}
 
-	return (
-		<MenuComponent onClick={item.action} className="cursor-pointer">
-			{item.icon && <item.icon className="h-4 w-4" />}
-			<span className="flex-1">
-				<HighlightText text={item.title} query={searchQuery} />
-			</span>
-			{item.badge && (
-				<span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground ml-auto">
-					{item.badge}
-				</span>
-			)}
-		</MenuComponent>
-	);
+	// Everything renders through this same Collapse — a filtered-out item closes
+	// with the identical grid-rows/opacity transition a group uses when you
+	// manually collapse it, instead of disappearing the instant it stops matching.
+	return <Collapse open={visible}>{content}</Collapse>;
 };
 
 export default RenderMenuItem;

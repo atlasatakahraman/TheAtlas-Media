@@ -18,4 +18,8 @@ export interface RenderMenuItemProps {
 	level?: number;
 	parentPath?: string;
 	searchQuery?: string;
+	// Items present in this set (or `undefined` for "no filter active") are shown;
+	// everything else collapses using the same transition as group expand/collapse
+	// instead of being unmounted instantly.
+	visibleItems?: Set<MenuItem>;
 }

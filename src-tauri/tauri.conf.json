@@ -6,15 +6,16 @@
 	"build": {
 		"frontendDist": "../out",
 		"devUrl": "http://localhost:3000",
-		"beforeDevCommand": "bun next --turbopack",
-		"beforeBuildCommand": "bun run next:build"
+		"beforeDevCommand": "bun --bun next dev --turbopack",
+		"beforeBuildCommand": "bun --bun next build"
 	},
 	"app": {
 		"windows": [
 			{
 				"title": "TheAtlas — Media",
 				"resizable": true,
-				"decorations": false
+				"decorations": false,
+				"alwaysOnTop": false
 			}
 		],
 		"security": {
