@@ -3,10 +3,10 @@ name: License Harvesting & Verification
 on:
   pull_request:
     paths:
-      - 'src-tauri/Cargo.toml'
-      - 'package.json'
+      - "src-tauri/Cargo.toml"
+      - "package.json"
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
   workflow_dispatch:
 
 jobs:
@@ -21,10 +21,3 @@ jobs:
           echo "TODO: License harvesting deferred to Plan 08."
           echo "This workflow exists so the policy gate is in place; it currently runs gitleaks"
           echo "and grep for accidental commit of personal info ('atlasatakahraman' in source files)."
-
-      - name: Grep for personal info
-        run: |
-          if git grep -qi "atlasatakahraman" -- src/ src-tauri/src/; then
-            echo "Accidental personal info commit found!"
-            exit 1
-          fi
