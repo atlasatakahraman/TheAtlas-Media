@@ -4,7 +4,6 @@
 fn main() {
     #[cfg(target_os = "linux")]
     disable_wayland_compositing_if_needed();
-
     app_lib::run();
 }
 
@@ -19,7 +18,12 @@ fn disable_wayland_compositing_if_needed() {
         return;
     }
 
+    if std::env::var("WEBKIT_DISABLE_DMABUF_RENDERER").is_ok() {
+        return;
+    }
+
     unsafe {
         std::env::set_var("WEBKIT_DISABLE_COMPOSITING_MODE", "1");
+        std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
     }
 }

@@ -1,4 +1,4 @@
-mod commands;
+pub mod commands;
 
 use std::env::consts::OS;
 use std::sync::OnceLock;
@@ -100,6 +100,10 @@ pub fn run() {
             get_display_server,
             set_window_position,
             get_operating_system,
+            commands::dependency::check_installed_dependencies,
+            commands::dependency::check_dependencies,
+            commands::install::install_dependency,
+            commands::install::install_all_missing,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")
