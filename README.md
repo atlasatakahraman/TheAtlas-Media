@@ -1,144 +1,230 @@
+<!--
+  TheAtlas Media README
+  Display typography is converted to vector outlines inside local SVG assets.
+  No external fonts, scripts, or image services are required.
+-->
+
 <p align="center">
-  <img src="https://img.shields.io/badge/License-AAKNCL_v1.0-gray?style=for-the-badge" alt="License" />
-  <img src="https://img.shields.io/badge/Tauri-2.11-blue?style=for-the-badge&logo=tauri" alt="Tauri" />
-  <img src="https://img.shields.io/badge/Rust-1.97%2B-orange?style=for-the-badge&logo=rust" alt="Rust" />
-  <img src="https://img.shields.io/badge/TypeScript-6.0-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" />
-  <img src="https://img.shields.io/badge/Bun-1.4%2B-fbf0df?style=for-the-badge&logo=bun" alt="Bun" />
-  <img src="https://img.shields.io/badge/Platform-Cross--Platform-brightgreen?style=for-the-badge" alt="Platform" />
+  <img src="./docs/readme/hero.svg" width="100%" alt="TheAtlas Media — local media workflows without command-line friction" />
 </p>
 
 <p align="center">
-  <img src="./src/assets/TheAtlasMediaW2048.png" alt="TheAtlas Media Logo" width="220" />
+  <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><img src="./docs/readme/badges/status-prerelease.svg" height="38" alt="Pre-release" /></a>&nbsp;
+  <a href="./package.json"><img src="./docs/readme/badges/status-version.svg" height="38" alt="Version 0.0.1" /></a>&nbsp;
+  <a href="https://v2.tauri.app/"><img src="./docs/readme/badges/tech-tauri.svg" height="38" alt="Tauri 2.11" /></a>&nbsp;
+  <a href="https://nextjs.org/"><img src="./docs/readme/badges/tech-next.svg" height="38" alt="Next.js 16" /></a>&nbsp;
+  <a href="https://www.rust-lang.org/"><img src="./docs/readme/badges/tech-rust.svg" height="38" alt="Rust 1.97.1" /></a>&nbsp;
+  <a href="https://bun.sh/"><img src="./docs/readme/badges/tech-bun.svg" height="38" alt="Bun 1.4 or newer" /></a>&nbsp;
+  <a href="./LICENSE.md"><img src="./docs/readme/badges/license.svg" height="38" alt="AAKNCL 1.0 license" /></a>
 </p>
 
-<h1 align="center">TheAtlas — Media</h1>
+<p align="center">
+  <a href="#overview"><img src="./docs/readme/badges/nav-overview.svg" height="36" alt="Overview" /></a>&nbsp;
+  <a href="#current-foundation"><img src="./docs/readme/badges/nav-foundation.svg" height="36" alt="Current foundation" /></a>&nbsp;
+  <a href="#architecture"><img src="./docs/readme/badges/nav-architecture.svg" height="36" alt="Architecture" /></a>&nbsp;
+  <a href="#development"><img src="./docs/readme/badges/nav-development.svg" height="36" alt="Development" /></a>&nbsp;
+  <a href="#roadmap"><img src="./docs/readme/badges/nav-roadmap.svg" height="36" alt="Roadmap" /></a>&nbsp;
+  <a href="#license"><img src="./docs/readme/badges/nav-license.svg" height="36" alt="License" /></a>
+</p>
 
-> **<p align="center">A high-performance cross-platform desktop application for downloading, extracting, and converting media — built with Next.js, TypeScript, and a Rust-powered Tauri backend.** </p>
+> [!IMPORTANT]
+> **TheAtlas Media is an active pre-release project.** The desktop shell and dependency-management foundation are implemented; the end-user media workflows are still being built. There are currently no published binary releases.
 
----
+<a id="overview"></a>
+## Overview
 
-## ✨ Overview
+**TheAtlas Media** is a cross-platform desktop project for downloading, inspecting, extracting, and converting video and audio without exposing users to a wall of command-line flags.
 
-TheAtlas Media is a modern desktop application built on Next.js 16, TypeScript, and Tauri 2.11, with a Rust backend. It is the dedicated media-processing counterpart to the broader TheAtlas project, focused exclusively on high-performance video and audio workflows on the user's own machine.
+The application pairs a statically exported **Next.js 16** interface with a **Tauri 2** desktop shell and an asynchronous **Rust** backend. The long-term product direction is a focused, native-feeling workspace around `yt-dlp`, `FFmpeg`, and `FFprobe`; the current repository concentrates on the infrastructure that makes those workflows dependable: discovering tools, managing binaries, reporting progress, validating checksums, understanding the host system, and controlling local storage.
 
-The project focuses on delivering:
-- Clean and modern **UI/UX** with dark theme support
-- High-performance **native cross-platform** capabilities
-- Automated **dependency management** with sha256 checksum integrity verification
-- Powerful **video and audio downloading** & format conversion
-- **Local-first** processing with no telemetry
+### Product principles
 
----
+- **Local by default.** Media, settings, caches, and generated files stay on the user’s device.
+- **Clear over clever.** Presets and guided flows should replace raw flag memorization.
+- **Native where it matters.** Downloads, archives, process execution, filesystem work, and integrity checks belong in Rust.
+- **Honest about state.** Missing tools, versions, source paths, download size, verification, and failures are visible in the interface.
+- **Cross-platform deliberately.** Windows, macOS, Linux, Wayland, packaging, and CI are treated as first-class constraints.
 
-## 🧠 Key Features
+<a id="current-foundation"></a>
+<p align="center">
+  <img src="./docs/readme/foundation.svg" width="100%" alt="Current TheAtlas Media foundation: dependency discovery, verified installation, progress reporting, storage control, cross-platform shell, packaging and CI" />
+</p>
 
-- 🖥️ **Cross-platform desktop application** (Windows · macOS · Linux)
-- 🎨 **Modern UI/UX** powered by Next.js + shadcn/ui with dark theme support & header theme switcher
-- 📦 **Automated Dependency Management** — Status detection, progress tracking, and sha256 checksum integrity verification for `yt-dlp` & `FFmpeg`/`FFprobe`
-- 🧹 **Storage & Cache Control** — Live app storage tracking and one-click application cache clearing
-- 🎞️ **Video downloading & format conversion**
-- 🎵 **Audio extraction & metadata tagging**
-- 🔐 **Local-first & privacy-focused** architecture
-- 🦀 **Rust-powered backend** for performance and safety
-- 🐧 **Linux & Arch Packaging** — Dedicated Linux and Arch Linux (`PKGBUILD`) build scripts
+### Implemented now
 
----
+| Area | Current capability |
+|---|---|
+| **Desktop shell** | Frameless Tauri window, custom header/sidebar, theme switching, OS detection, and Linux display-server awareness |
+| **Dependency discovery** | Detects `FFmpeg`, `FFprobe`, and `yt-dlp` from environment overrides, app-managed storage, or system `PATH` |
+| **Dependency lifecycle** | Install, install-all, uninstall, version checks, update checks, download-size lookup, and event-driven progress |
+| **Integrity** | SHA-256 manifest and binary verification before a managed dependency is treated as ready |
+| **Storage** | Application-storage measurement, WebKit cache measurement, and explicit cache clearing |
+| **Packaging** | Tauri bundles, generic Linux build wrapper, Arch Linux `PKGBUILD`, and NSIS configuration for Windows |
+| **Quality gates** | TypeScript, ESLint, compatibility rules, agent/animation checks, rustfmt, clippy, Cargo check, and tests across three CI operating systems |
 
-## 🧩 Technology Stack
+### In progress
 
-### Frontend & Runtime
-- **Next.js 16.2** (App Router, Turbopack, static export)
-- **React 19**
-- **TypeScript 6.0**
-- **Tailwind CSS v4** + **shadcn/ui** + **next-themes** + **Sonner**
-- **Package Manager:** Bun 1.4+ (mandatory execution engine)
+The media-facing layer is the current workstream: connecting the existing navigation and route structure to real Rust commands for downloads, extraction, conversion, queues, progress, cancellation, and output handling.
 
-### Backend
-- **Rust 1.97+** (pinned toolchain)
-- **Tauri 2.11** with custom IPC handlers (`dependency`, `install`, `update`, `model`)
-- **tokio** async runtime + **reqwest** for async HTTP downloading
-- **sha2** for sha256 binary checksum integrity verification
-- **tar** / **xz2** / **zip** for archive extraction
+The sidebar already maps the intended product surface—single videos, playlists, channels, audio, subtitles, thumbnails, format inspection, codec selection, transcoding, batch conversion, NLE presets, trimming, audio processing, and image/frame tools. **That map describes direction, not a list of completed features.**
 
-### Media Processing
-- **yt-dlp** & **FFmpeg / FFprobe** (managed locally or system-wide with sha256 integrity validation)
-- **lofty** for audio metadata tagging
+<a id="architecture"></a>
+<p align="center">
+  <img src="./docs/readme/architecture.svg" width="100%" alt="TheAtlas Media architecture: Next.js product UI, Tauri IPC bridge, Rust services, and local media tools" />
+</p>
 
----
+### Runtime boundaries
 
-## ⚡ Commands & Development
+1. **Product UI** — Next.js App Router, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, and a static export.
+2. **IPC bridge** — typed Tauri commands and events connect the webview to native capabilities.
+3. **Rust services** — `tokio`, `reqwest`, archive readers, checksum validation, process execution, and filesystem operations.
+4. **Local system** — app-managed or system installations of `FFmpeg`, `FFprobe`, and `yt-dlp`, plus local files and caches.
 
-```bash
-# Run desktop app in development mode
-bun run dev
+The frontend has no application server. Production output is exported to `out/` and loaded by Tauri; native work crosses the IPC boundary instead of being hidden inside browser-only abstractions.
 
-# Run frontend dev server only
-bun run next:dev
+### Repository map
 
-# Typecheck and lint codebase
-bun run lint
-bash scripts/check-compat.sh
-
-# Build packages
-bun run build:linux   # Generic Linux build script
-bun run build:arch    # Arch Linux PKGBUILD package build script
+```text
+src/app/                         Next.js routes and static application entry points
+src/app/settings/dependencies/   Dependency manager interface
+src/components/                  Product components and shadcn/ui primitives
+src/hooks/                       Dependency, installation, window, and system state
+src/layout/                      Frameless header, sidebar, navigation, and app view
+src/lib/                         Shared contracts, environment helpers, and utilities
+src-tauri/src/commands/          Native dependency, install, update, and model commands
+src-tauri/src/lib.rs             Tauri setup, plugins, OS/display detection, IPC registry
+packaging/arch/                  Arch package metadata
+scripts/                         Compatibility checks and Linux/Arch build wrappers
+.github/workflows/               CI, security audit, licensing, and automation
 ```
 
----
+<a id="development"></a>
+## Development
 
-## 🔒 Privacy & Security
+### Prerequisites
 
-- No telemetry
-- No analytics
-- No background data collection
-- All data is stored locally on the user's device
+- **Bun 1.4+** — mandatory package manager and script runtime
+- **Node.js 20.9+** — required by Next.js compatibility checks
+- **Rust 1.97.1** — pinned in `rust-toolchain.toml` with `rustfmt` and `clippy`
+- **ripgrep** — used by repository guard scripts
+- **Tauri system dependencies** for your operating system
 
-> A formal privacy policy will accompany the first public release.
+On Debian/Ubuntu-based Linux systems, the CI environment installs:
 
----
+```bash
+sudo apt-get install -y \
+  libgtk-3-dev \
+  libwebkit2gtk-4.1-dev \
+  libayatana-appindicator3-dev \
+  librsvg2-dev \
+  build-essential
+```
 
-## 📦 Installation & Packaging
+### Start locally
 
-- **Arch Linux**: `bun run build:arch` (generates Arch package via `packaging/arch/PKGBUILD`)
-- **Generic Linux**: `bun run build:linux` (runs Linux build script with cache handling)
+```bash
+git clone https://github.com/atlasatakahraman/TheAtlas-Media.git
+cd TheAtlas-Media
 
-> 🚧 Full pre-built releases will be made available as the project matures.
+bun install --frozen-lockfile
+bun run dev
+```
 
----
+For the frontend without the desktop shell:
 
-## 🛠️ Development Status
+```bash
+bun run next:dev
+```
 
-TheAtlas Media is under **active development**.
+### Build
 
-Phase 0 (scaffolding, governance, CI) is complete. Phase 1 (Dependency Manager Rust IPC backend, sha256 checksum manifest integrity verification, WebKit cache controls, and frontend settings page) is complete. Phase 2 (Media processing workflows & download manager UI integration) is in progress.
+```bash
+bun run build          # Standard Tauri build
+bun run build:linux    # Linux wrapper for AppImage/deb/rpm tooling
+bun run build:arch     # Arch package through packaging/arch/PKGBUILD
+```
 
-Features, APIs, and internal architecture may change as the project evolves toward its first public release.
+No production installers are published yet. Build output and bundle availability depend on the host operating system and installed Tauri prerequisites.
 
----
+### Quality checks
 
-## 📚 Legal
+```bash
+bun run lint
+bun tsc --noEmit
+bash scripts/check-agents-rules.sh
+bash scripts/check-animation-rules.sh
+bash scripts/check-compat.sh
 
-- **Application Name:** TheAtlas Media
-- **Copyright:** © Atlas Ata KAHRAMAN
-- **Alias:** atlasfirarda
-- **License:** [AAKNCL v1.0](./LICENSE.md) (Non-Commercial)
+cd src-tauri
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo check --no-default-features
+cargo test --no-default-features
+```
 
-Personal, educational, and non-commercial use is free. Commercial use requires a separate commercial license — see [LICENSE.md](./LICENSE.md).
+### Project constraints
 
-Unauthorized commercial use, sublicensing, or trademark abuse of "TheAtlas", "TheAtlas Media", or the project's logos is strictly prohibited.
+- Static Next.js export only; there is no server runtime.
+- Tauri v2 APIs only.
+- Bun is the execution engine for JavaScript tooling.
+- Frontend code does not import Rust source directly; native features go through IPC.
+- Interface animation is restricted to GPU-friendly `transform` and `opacity` patterns.
+- New application/layout files follow the repository’s Next.js verification stamp convention.
 
----
+<a id="roadmap"></a>
+<p align="center">
+  <img src="./docs/readme/roadmap.svg" width="100%" alt="TheAtlas Media roadmap: foundation complete, dependencies complete, media workflows in progress, public releases later" />
+</p>
 
-## 📧 Contact
+### Directional milestones
 
-For technical, legal, or commercial-licensing inquiries:
+- **Foundation — complete:** repository governance, static-export shell, native runtime, CI, and build structure.
+- **Dependency system — complete:** discovery, managed installation, progress, integrity verification, updates, and cache controls.
+- **Media workflows — in progress:** real download/extract/convert commands, queue orchestration, cancellation, and output UX.
+- **Public releases — later:** signed or packaged binaries, installation guidance, privacy documentation, and stabilized APIs.
 
-- **Developer:** Atlas Ata KAHRAMAN
-- **Alias:** atlasfirarda
-- **Email:** atlasatakahraman.com@gmail.com
-- **GitHub:** https://github.com/atlasatakahraman
+The roadmap is intentionally directional. Features, route names, native contracts, and release scope may change while the application is pre-release.
 
----
+## Privacy and security
 
-⭐ If you find this project interesting, consider starring the repository.
+- No telemetry or behavioral analytics are implemented.
+- Application data and generated media remain local unless a workflow explicitly contacts a remote media source.
+- Dependency installation and media retrieval require network access.
+- The app performs a background update check during startup; this is an update request, not usage tracking.
+- Managed dependency downloads are checked against SHA-256 data before they are accepted.
+- Tauri uses a restrictive content-security policy and explicit capabilities.
+- Cache clearing is user-triggered and reports storage before deletion.
+
+## Third-party tools
+
+TheAtlas Media coordinates established media tools rather than replacing them:
+
+- [`FFmpeg`](https://ffmpeg.org/) and `FFprobe` — multimedia processing and inspection
+- [`yt-dlp`](https://github.com/yt-dlp/yt-dlp) — media and metadata extraction
+
+Each dependency retains its own authorship, license, and distribution terms. The application’s license does not supersede third-party licenses.
+
+## Contributing
+
+The project is currently maintainer-led while architecture and native contracts are still moving. Focused bug reports and implementation discussions are welcome through [GitHub Issues](https://github.com/atlasatakahraman/TheAtlas-Media/issues).
+
+Before proposing code, run the relevant TypeScript, repository-rule, and Rust checks listed above. Keep Rust/native changes and frontend/product changes separated where practical.
+
+<a id="license"></a>
+## License
+
+TheAtlas Media is distributed under the **[AAKNCL v1.0](./LICENSE.md)** non-commercial license.
+
+- Personal, educational, and non-commercial use is permitted under the license terms.
+- Commercial use requires a separate agreement.
+- TheAtlas names, product identity, and logos are not granted for unauthorized commercial use or misleading redistribution.
+
+For technical, legal, or commercial-license inquiries:
+
+- **Developer:** Atlas Ata Kahraman
+- **GitHub:** [@atlasatakahraman](https://github.com/atlasatakahraman)
+- **Email:** [atlasatakahraman.com@gmail.com](mailto:atlasatakahraman.com@gmail.com)
+
+<p align="center">
+  <sub>Designed at the interface. Engineered at the boundary. Processed on your machine.</sub>
+</p>
