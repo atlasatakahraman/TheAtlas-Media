@@ -5,27 +5,46 @@
 -->
 
 <p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/logo-dark.png" />
+    <img src="./docs/readme/logo-light.png" width="240" alt="TheAtlas Media logo" />
+  </picture>
+</p>
+
+<p align="center">
   <img src="./docs/readme/hero.svg" width="100%" alt="TheAtlas Media — local media workflows without command-line friction" />
 </p>
 
+<br>
+
 <p align="center">
-  <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><img src="./docs/readme/badges/status-prerelease.svg" height="38" alt="Pre-release" /></a>&nbsp;
-  <a href="./package.json"><img src="./docs/readme/badges/status-version.svg" height="38" alt="Version 0.0.1" /></a>&nbsp;
-  <a href="https://v2.tauri.app/"><img src="./docs/readme/badges/tech-tauri.svg" height="38" alt="Tauri 2.11" /></a>&nbsp;
-  <a href="https://nextjs.org/"><img src="./docs/readme/badges/tech-next.svg" height="38" alt="Next.js 16" /></a>&nbsp;
-  <a href="https://www.rust-lang.org/"><img src="./docs/readme/badges/tech-rust.svg" height="38" alt="Rust 1.97.1" /></a>&nbsp;
-  <a href="https://bun.sh/"><img src="./docs/readme/badges/tech-bun.svg" height="38" alt="Bun 1.4 or newer" /></a>&nbsp;
-  <a href="./LICENSE.md"><img src="./docs/readme/badges/license.svg" height="38" alt="AAKNCL 1.0 license" /></a>
+  <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><img src="./docs/readme/badges/status-prerelease.svg" height="50" alt="Pre-release" /></a>&nbsp;&nbsp;
+  <a href="./package.json"><img src="./docs/readme/badges/status-version.svg" height="50" alt="Version 0.0.1" /></a>&nbsp;&nbsp;
+  <a href="./LICENSE.md"><img src="./docs/readme/badges/license.svg" height="50" alt="AAKNCL 1.0 license" /></a>
 </p>
 
 <p align="center">
-  <a href="#overview"><img src="./docs/readme/badges/nav-overview.svg" height="36" alt="Overview" /></a>&nbsp;
-  <a href="#current-foundation"><img src="./docs/readme/badges/nav-foundation.svg" height="36" alt="Current foundation" /></a>&nbsp;
-  <a href="#architecture"><img src="./docs/readme/badges/nav-architecture.svg" height="36" alt="Architecture" /></a>&nbsp;
-  <a href="#development"><img src="./docs/readme/badges/nav-development.svg" height="36" alt="Development" /></a>&nbsp;
-  <a href="#roadmap"><img src="./docs/readme/badges/nav-roadmap.svg" height="36" alt="Roadmap" /></a>&nbsp;
-  <a href="#license"><img src="./docs/readme/badges/nav-license.svg" height="36" alt="License" /></a>
+  <a href="https://v2.tauri.app/"><img src="./docs/readme/badges/tech-tauri.svg" height="50" alt="Tauri 2.11" /></a>&nbsp;&nbsp;
+  <a href="https://nextjs.org/"><img src="./docs/readme/badges/tech-next.svg" height="50" alt="Next.js 16" /></a>&nbsp;&nbsp;
+  <a href="https://www.rust-lang.org/"><img src="./docs/readme/badges/tech-rust.svg" height="50" alt="Rust 1.97.1" /></a>&nbsp;&nbsp;
+  <a href="https://bun.sh/"><img src="./docs/readme/badges/tech-bun.svg" height="50" alt="Bun 1.4 or newer" /></a>
 </p>
+
+<br>
+
+<p align="center">
+  <a href="#overview"><img src="./docs/readme/badges/nav-overview.svg" height="50" alt="Overview" /></a>&nbsp;&nbsp;
+  <a href="#current-foundation"><img src="./docs/readme/badges/nav-foundation.svg" height="50" alt="Current foundation" /></a>&nbsp;&nbsp;
+  <a href="#architecture"><img src="./docs/readme/badges/nav-architecture.svg" height="50" alt="Architecture" /></a>
+</p>
+
+<p align="center">
+  <a href="#development"><img src="./docs/readme/badges/nav-development.svg" height="50" alt="Development" /></a>&nbsp;&nbsp;
+  <a href="#roadmap"><img src="./docs/readme/badges/nav-roadmap.svg" height="50" alt="Roadmap" /></a>&nbsp;&nbsp;
+  <a href="#license"><img src="./docs/readme/badges/nav-license.svg" height="50" alt="License" /></a>
+</p>
+
+<br>
 
 > [!IMPORTANT]
 > **TheAtlas Media is an active pre-release project.** The desktop shell and dependency-management foundation are implemented; the end-user media workflows are still being built. There are currently no published binary releases.
