@@ -38,6 +38,9 @@ export type DependencyInfo = {
 	source: DependencySource;
 	path: string | null;
 	version: string | null;
+	latestVersion: string | null;
+	sizeMb: number | null;
+	sha256: string | null;
 	error: string | null;
 };
 

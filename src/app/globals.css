@@ -66,9 +66,9 @@
 	--foreground: #1c1b1a;
 
 	/* Card / Popover */
-	--card: #ffffff;
+	--card: #f7f3f0;
 	--card-foreground: #1c1b1a;
-	--popover: #ffffff;
+	--popover: #e8e2d7;
 	--popover-foreground: #1c1b1a;
 
 	/* Primary — palette.primary #3b3628 */
@@ -103,7 +103,7 @@
 	--chart-5: #c2484e;
 
 	/* Sidebar */
-	--sidebar: #f7f3f0;
+	--sidebar: #e8e2d7;
 	--sidebar-foreground: #1c1b1a;
 	--sidebar-primary: #3b3628;
 	--sidebar-primary-foreground: #ffffff;

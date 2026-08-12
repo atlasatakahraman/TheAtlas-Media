@@ -8,33 +8,32 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 const sans = localFont({
 	src: "../fonts/sans-regular.woff2",
 	variable: "--font-sans",
-})
+});
 
 const sans_italic = localFont({
 	src: "../fonts/sans-italic.woff2",
 	variable: "--font-sans-italic",
-})
+});
 
 const mono = localFont({
 	src: "../fonts/mono-variable.woff2",
 	variable: "--font-mono",
-
-})
+});
 
 const mono_italic = localFont({
 	src: "../fonts/mono-variable-italic.woff2",
 	variable: "--font-mono-italic",
-})
+});
 
 const serif = localFont({
 	src: "../fonts/serif-regular.woff2",
 	variable: "--font-serif",
-})
+});
 
 const serif_italic = localFont({
 	src: "../fonts/serif-italic.woff2",
 	variable: "--font-serif-italic",
-})
+});
 
 export const metadata: Metadata = {
 	title: "Create Next App",
@@ -49,6 +48,7 @@ export default function RootLayout({
 	return (
 		<html
 			lang="en"
+			suppressHydrationWarning={true}
 			className={`${sans.variable} ${sans_italic.variable} ${mono.variable} ${mono_italic.variable} ${serif.variable} ${serif_italic.variable} h-full antialiased`}
 		>
 			<body className="min-h-full flex flex-col overflow-hidden ">

@@ -56,7 +56,7 @@ impl Serialize for InstallError {
 
 /// FFmpeg and FFprobe are bundled in the same archive.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-enum DownloadTarget {
+pub(crate) enum DownloadTarget {
     FfmpegBundle,
     YtDlp,
 }
@@ -133,11 +133,37 @@ pub async fn install_all_missing(app: AppHandle) -> Result<(), InstallError> {
     Ok(())
 }
 
+/// Uninstall a managed dependency by removing its binary files from managed_bin_dir.
+#[tauri::command]
+pub async fn uninstall_dependency(app: AppHandle, name: String) -> Result<(), InstallError> {
+    let bin_dir = managed_bin_dir(&app).map_err(InstallError::FsError)?;
+    let target = name_to_target(&name)?;
+
+    let tools_to_remove: Vec<Tool> = match target {
+        DownloadTarget::FfmpegBundle => vec![Tool::FFmpeg, Tool::FFprobe],
+        DownloadTarget::YtDlp => vec![Tool::YTdlp],
+    };
+
+    for tool in tools_to_remove {
+        let exe_path = bin_dir.join(tool.exe_name());
+        if exe_path.exists() {
+            tokio::fs::remove_file(&exe_path)
+                .await
+                .map_err(|e| InstallError::FsError(e.to_string()))?;
+        }
+    }
+
+    Ok(())
+}
+
 // ---------------------------------------------------------------------------
 // Core install logic
 // ---------------------------------------------------------------------------
 
-async fn do_install(app: &AppHandle, target: DownloadTarget) -> Result<(), InstallError> {
+pub(crate) async fn do_install(
+    app: &AppHandle,
+    target: DownloadTarget,
+) -> Result<(), InstallError> {
     let bin_dir = managed_bin_dir(app).map_err(InstallError::FsError)?;
     tokio::fs::create_dir_all(&bin_dir)
         .await
@@ -488,10 +514,10 @@ fn archive_extension() -> &'static str {
 // Helpers
 // ---------------------------------------------------------------------------
 
-fn name_to_target(name: &str) -> Result<DownloadTarget, InstallError> {
+pub(crate) fn name_to_target(name: &str) -> Result<DownloadTarget, InstallError> {
     match name {
         "ffmpeg" | "ffprobe" => Ok(DownloadTarget::FfmpegBundle),
-        "yt-dlp" => Ok(DownloadTarget::YtDlp),
+        "yt-dlp" | "ytdlp" => Ok(DownloadTarget::YtDlp),
         other => Err(InstallError::UnknownDependency(other.to_string())),
     }
 }
@@ -521,4 +547,64 @@ fn set_executable(path: &Path) -> Result<(), InstallError> {
     use std::os::unix::fs::PermissionsExt;
     let perms = std::fs::Permissions::from_mode(0o755);
     std::fs::set_permissions(path, perms).map_err(|e| InstallError::FsError(e.to_string()))
+}
+
+// ---------------------------------------------------------------------------
+// Dynamic Size Fetching (HTTP HEAD on Tokio)
+// ---------------------------------------------------------------------------
+
+pub(crate) fn download_url_for_name(name: &str) -> Result<&'static str, InstallError> {
+    match name {
+        "ffmpeg" | "ffprobe" => ffmpeg_download_url(),
+        "yt-dlp" | "ytdlp" => ytdlp_download_url(),
+        other => Err(InstallError::UnknownDependency(other.to_string())),
+    }
+}
+
+/// Dynamically fetch Content-Length header via HTTP HEAD request on tokio.
+/// Returns download size in Megabytes (MB).
+#[tauri::command]
+pub async fn get_download_size_mb(name: String) -> Result<f64, InstallError> {
+    let url = download_url_for_name(&name)?;
+
+    let client = reqwest::Client::builder()
+        .user_agent("TheAtlas-Media/0.0.1")
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .map_err(|e| InstallError::DownloadFailed(e.to_string()))?;
+
+    let resp = client
+        .head(url)
+        .send()
+        .await
+        .map_err(|e| InstallError::DownloadFailed(e.to_string()))?;
+
+    let bytes = resp.content_length().unwrap_or(0);
+    let mb = bytes as f64 / 1_048_576.0;
+
+    Ok(mb)
+}
+
+/// Concurrently fetch download sizes for multiple dependency names on tokio threads.
+#[tauri::command]
+pub async fn get_all_download_sizes_mb(
+    names: Vec<String>,
+) -> Result<std::collections::HashMap<String, f64>, InstallError> {
+    let mut join_set = tokio::task::JoinSet::new();
+
+    for name in names {
+        join_set.spawn(async move {
+            let size = get_download_size_mb(name.clone()).await.unwrap_or(0.0);
+            (name, size)
+        });
+    }
+
+    let mut results = std::collections::HashMap::new();
+    while let Some(res) = join_set.join_next().await {
+        if let Ok((name, size)) = res {
+            results.insert(name, size);
+        }
+    }
+
+    Ok(results)
 }

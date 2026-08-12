@@ -91,9 +91,15 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
-        .setup(|_app| {
+        .setup(|app| {
             DISPLAY_SERVER.get_or_init(detect_display_server);
             OPERATING_SYSTEM.get_or_init(detect_operating_system);
+
+            let handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = commands::update::run_update_check(&handle, false).await;
+            });
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -102,8 +108,13 @@ pub fn run() {
             get_operating_system,
             commands::dependency::check_installed_dependencies,
             commands::dependency::check_dependencies,
+            commands::dependency::get_app_storage_size_mb,
             commands::install::install_dependency,
             commands::install::install_all_missing,
+            commands::install::uninstall_dependency,
+            commands::install::get_download_size_mb,
+            commands::install::get_all_download_sizes_mb,
+            commands::update::check_for_updates,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

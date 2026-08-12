@@ -1,11 +1,31 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::{
     env,
     path::{Path, PathBuf},
     time::Duration,
 };
 use tauri::{AppHandle, Manager};
-use tokio::{process::Command, time::timeout};
+use tokio::{io::AsyncReadExt, process::Command, time::timeout};
+
+pub(crate) async fn compute_file_sha256(path: &Path) -> Result<String, String> {
+    let mut file = tokio::fs::File::open(path)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 65536];
+
+    loop {
+        let n = file.read(&mut buffer).await.map_err(|e| e.to_string())?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buffer[..n]);
+    }
+
+    Ok(format!("{:x}", hasher.finalize()))
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
@@ -31,6 +51,9 @@ pub struct DependencyInfo {
     pub source: DependencySource,
     pub path: Option<String>,
     pub version: Option<String>,
+    pub latest_version: Option<String>,
+    pub size_mb: Option<f64>,
+    pub sha256: Option<String>,
     pub error: Option<String>,
 }
 
@@ -122,9 +145,20 @@ pub async fn check_installed_dependencies(app: AppHandle) -> Result<DependencySt
 
 #[tauri::command]
 pub async fn check_dependencies(app: AppHandle) -> Result<DependencyReport, String> {
-    let ffmpeg = check_tool(&app, Tool::FFmpeg).await;
-    let ffprobe = check_tool(&app, Tool::FFprobe).await;
-    let ytdlp = check_tool(&app, Tool::YTdlp).await;
+    let mut ffmpeg = check_tool(&app, Tool::FFmpeg).await;
+    let mut ffprobe = check_tool(&app, Tool::FFprobe).await;
+    let mut ytdlp = check_tool(&app, Tool::YTdlp).await;
+
+    if let Ok(base) = app.path().app_local_data_dir() {
+        let cache_path = base.join("update_cache.json");
+        if let Ok(content) = tokio::fs::read_to_string(&cache_path).await {
+            if let Ok(cache) = serde_json::from_str::<super::update::UpdateCache>(&content) {
+                ytdlp.latest_version = cache.ytdlp_tag;
+                ffmpeg.latest_version = cache.ffmpeg_tag.clone();
+                ffprobe.latest_version = cache.ffmpeg_tag;
+            }
+        }
+    }
 
     let all_installed = matches!(ffmpeg.status, DependencyStatus::Installed)
         && matches!(ffprobe.status, DependencyStatus::Installed)
@@ -157,6 +191,38 @@ pub async fn get_dependency_paths(app: &AppHandle) -> Result<DependencyPaths, St
     })
 }
 
+#[tauri::command]
+pub async fn get_app_storage_size_mb(app: AppHandle) -> Result<f64, String> {
+    let Ok(base) = app.path().app_local_data_dir() else {
+        return Ok(0.0);
+    };
+
+    if !base.exists() {
+        return Ok(0.0);
+    }
+
+    let mut total_bytes: u64 = 0;
+    let mut stack = vec![base];
+
+    while let Some(dir) = stack.pop() {
+        if let Ok(mut read_dir) = tokio::fs::read_dir(&dir).await {
+            while let Ok(Some(entry)) = read_dir.next_entry().await {
+                if let Ok(file_type) = entry.file_type().await {
+                    if file_type.is_dir() {
+                        stack.push(entry.path());
+                    } else if file_type.is_file() {
+                        if let Ok(metadata) = entry.metadata().await {
+                            total_bytes += metadata.len();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(total_bytes as f64 / 1_048_576.0)
+}
+
 pub(crate) async fn check_tool(app: &AppHandle, tool: Tool) -> DependencyInfo {
     let candidates = candidate_paths(app, tool);
 
@@ -167,12 +233,21 @@ pub(crate) async fn check_tool(app: &AppHandle, tool: Tool) -> DependencyInfo {
 
         match read_version(&candidate.path, tool).await {
             Ok(version) => {
+                let size_mb = tokio::fs::metadata(&candidate.path)
+                    .await
+                    .map(|m| m.len() as f64 / 1_048_576.0)
+                    .ok();
+                let sha256 = compute_file_sha256(&candidate.path).await.ok();
+
                 return DependencyInfo {
                     name: tool.name().to_string(),
                     status: DependencyStatus::Installed,
                     source: candidate.source,
                     path: Some(candidate.path.to_string_lossy().to_string()),
                     version: Some(version),
+                    latest_version: None,
+                    size_mb,
+                    sha256,
                     error: None,
                 };
             }
@@ -183,6 +258,9 @@ pub(crate) async fn check_tool(app: &AppHandle, tool: Tool) -> DependencyInfo {
                     source: candidate.source,
                     path: Some(candidate.path.to_string_lossy().to_string()),
                     version: None,
+                    latest_version: None,
+                    size_mb: None,
+                    sha256: None,
                     error: Some(error),
                 };
             }
@@ -195,6 +273,9 @@ pub(crate) async fn check_tool(app: &AppHandle, tool: Tool) -> DependencyInfo {
         source: DependencySource::Missing,
         path: None,
         version: None,
+        latest_version: None,
+        size_mb: None,
+        sha256: None,
         error: Some(format!("{} was not found", tool.name())),
     }
 }

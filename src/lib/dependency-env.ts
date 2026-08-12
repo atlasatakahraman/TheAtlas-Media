@@ -17,3 +17,7 @@ export async function install_dependency(name: string): Promise<void> {
 export async function install_all_missing(): Promise<void> {
 	return await invoke("install_all_missing");
 }
+
+export async function uninstall_dependency(name: string): Promise<void> {
+	return await invoke("uninstall_dependency", { name });
+}

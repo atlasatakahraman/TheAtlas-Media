@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Logging } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/sonner";
 
 export default function AppView({ children }: ViewProps) {
 
@@ -74,8 +75,7 @@ export default function AppView({ children }: ViewProps) {
 	}, [sidebarSearch])
 
 	return (
-		<SidebarProvider defaultOpen={true}
-		>
+		<SidebarProvider defaultOpen={true}>
 			<Appbar />
 			<SidebarInset>
 				<Header></Header>
@@ -83,6 +83,7 @@ export default function AppView({ children }: ViewProps) {
 					{children}
 				</div>
 			</SidebarInset>
+			<Toaster position="bottom-right" />
 		</SidebarProvider>
-	)
+	);
 }

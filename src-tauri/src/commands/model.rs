@@ -1,13 +1,15 @@
+#[allow(dead_code)]
 pub struct Queue {
-    first: i32,
-    last: i32,
-    current: i32,
-    list: Vec<Video>,
+    pub first: i32,
+    pub last: i32,
+    pub current: i32,
+    pub list: Vec<Video>,
 }
 
+#[allow(dead_code)]
 pub struct Video {
-    url: String,
-    valid: bool,
-    fps: i32,
-    duration: i64,
+    pub url: String,
+    pub valid: bool,
+    pub fps: i32,
+    pub duration: i64,
 }

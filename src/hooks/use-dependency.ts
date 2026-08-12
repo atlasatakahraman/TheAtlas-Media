@@ -2,29 +2,76 @@
 
 import { get_dependencies } from "@/lib/dependency-env";
 import { DependencyReport } from "@/lib/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export type DependencyCurrentState =
-	{ status: "loading" } | { status: "ready"; deps: DependencyReport };
+	| { status: "loading" }
+	| { status: "ready"; deps: DependencyReport };
 
-export default function useDependency(): DependencyCurrentState & { recheck: () => void } {
-	const [state, setState] = useState<DependencyCurrentState>(() => ({
-		status: "loading",
-	}));
+// Module-level global cache to avoid redundant IPC checks on component mounts/refreshes.
+let cachedReport: DependencyReport | null = null;
+let isFetching = false;
+const listeners = new Set<() => void>();
 
-	const fetchDeps = useCallback(() => {
-		get_dependencies().then((deps) => {
-			setState({ status: "ready", deps });
-		});
-	}, []);
+function notifyListeners() {
+	listeners.forEach((l) => l());
+}
 
-	const resolved = useRef(false);
+/**
+ * Triggers backend dependency check and updates global cache.
+ * Called automatically ONCE on app startup, and on explicit dependency actions (install/uninstall/check updates).
+ */
+export async function refreshDependencies(): Promise<DependencyReport | null> {
+	if (isFetching) return cachedReport;
+	isFetching = true;
+	try {
+		cachedReport = await get_dependencies();
+		notifyListeners();
+		return cachedReport;
+	} catch (e) {
+		console.error("Failed to fetch dependencies", e);
+		return cachedReport;
+	} finally {
+		isFetching = false;
+	}
+}
+
+// Initial app startup check (runs once on client load)
+if (typeof window !== "undefined") {
+	refreshDependencies();
+}
+
+export default function useDependency(): DependencyCurrentState & {
+	recheck: () => Promise<DependencyReport | null>;
+} {
+	const [state, setState] = useState<DependencyCurrentState>(() => {
+		if (cachedReport) {
+			return { status: "ready", deps: cachedReport };
+		}
+		return { status: "loading" };
+	});
 
 	useEffect(() => {
-		if (resolved.current) return;
-		resolved.current = true;
-		fetchDeps();
-	}, [fetchDeps]);
+		// Sync local state with global cache
+		function handleChange() {
+			if (cachedReport) {
+				setState({ status: "ready", deps: cachedReport });
+			}
+		}
 
-	return { ...state, recheck: fetchDeps };
+		listeners.add(handleChange);
+		if (cachedReport && state.status === "loading") {
+			handleChange();
+		}
+
+		return () => {
+			listeners.delete(handleChange);
+		};
+	}, [state.status]);
+
+	const recheck = useCallback(async (): Promise<DependencyReport | null> => {
+		return await refreshDependencies();
+	}, []);
+
+	return { ...state, recheck };
 }

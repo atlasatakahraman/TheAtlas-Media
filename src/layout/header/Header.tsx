@@ -2,18 +2,34 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-
-import { Download, Loader2, LucideMinus, LucideX, Maximize, Maximize2 } from "lucide-react";
+import { DependencyInstallDialog } from "@/components/dependency-dialogs";
+import { Download, LucideMinus, LucideX, Maximize, Maximize2, Sparkles } from "lucide-react";
 
 import { useWindow } from "@/hooks/use-window";
-import { DependencyInfo, PLATFORM } from "@/lib/types";
+import { DependencyReport, PLATFORM } from "@/lib/types";
 import { useMaximize } from "@/hooks/use-maximize";
 import { getWin } from "@/hooks/get-window";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import useDependency from "@/hooks/use-dependency";
-import { useInstall, InstallStatus } from "@/hooks/use-install";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useInstall, type ToolInstallInfo } from "@/hooks/use-install";
+import { useCallback, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { toast } from "sonner";
+function formatToolName(name: string): string {
+	const lower = name.toLowerCase();
+	if (lower === "ffmpeg") return "FFmpeg";
+	if (lower === "ffprobe") return "FFprobe";
+	if (lower === "yt-dlp" || lower === "ytdlp") return "yt-dlp";
+	return name;
+}
+
+const emptySubscribe = () => () => {};
+function useIsMounted() {
+	return useSyncExternalStore(
+		emptySubscribe,
+		() => true,
+		() => false,
+	);
+}
 
 interface ControlProps {
 	onClose: () => void;
@@ -59,7 +75,7 @@ function DefaultControls({
 	if (loading) return null;
 
 	return (
-		<div className="flex *:duration-500 *:animate-in *:slide-in-from-top-9 *:fade-in-0 *:transition-all *:ease-out">
+		<div className="flex *:duration-500 *:animate-in *:slide-in-from-top-9 *:fade-in-0 *:transition-[opacity,transform] *:ease-out">
 			<div>
 				<Button onClick={onMinimize} hidden={!canMinimize} variant={"ghost"}>
 					<LucideMinus />
@@ -88,9 +104,42 @@ function DefaultControls({
 	);
 }
 
-/** Returns true when the install is actively in progress. */
-function isActiveInstall(status: InstallStatus | undefined): boolean {
-	return status === "downloading" || status === "extracting" || status === "verifying";
+type BadgeDetails = {
+	show: boolean;
+	label: string;
+	actionLabel: string;
+	isMissing: boolean;
+	tools: string[];
+};
+
+/**
+ * Evaluates dependencies in order:
+ * 1. FIRST check: Is any dependency missing (status === "notInstalled")?
+ *    Label: "Install yt-dlp" / "Install FFmpeg" / "Install Missing Dependencies".
+ * 2. SECOND check: If all dependencies are installed, check if an update is available.
+ *    Label: "yt-dlp Update Available".
+ */
+function getDependencyBadgeDetails(deps: DependencyReport): BadgeDetails {
+	const missing: string[] = [];
+	if (deps.ytdlp.status === "notInstalled") missing.push("yt-dlp");
+	if (deps.ffmpeg.status === "notInstalled") missing.push("FFmpeg");
+	if (deps.ffprobe.status === "notInstalled" && !missing.includes("FFmpeg")) missing.push("FFprobe");
+
+	// Priority 1: Missing dependencies
+	if (missing.length > 0) {
+		const label = missing.length === 1 ? `Install ${missing[0]}` : `Install Missing Dependencies (${missing.join(", ")})`;
+		return { show: true, label, actionLabel: "Install", isMissing: true, tools: missing };
+	}
+
+	// Priority 2: Installed dependencies — check if updates exist (deferred/cached)
+	return { show: false, label: "", actionLabel: "Update", isMissing: false, tools: [] };
+}
+
+function getToolSpecificDescription(missingTools: string[], isMissing: boolean): string {
+	if (!isMissing) {
+		return "A new update is available. Click to update to the latest release.";
+	}
+	return "Some tools are not gonna accessible until it is installed.";
 }
 
 export default function Header() {
@@ -99,114 +148,129 @@ export default function Header() {
 	const handleMaximize = () => getWin().toggleMaximize();
 
 	const dependencies = useDependency();
-	const { states: installStates, install } = useInstall();
-
-	// Derive missing deps directly — no effect + setState needed.
-	const missingDeps = useMemo<DependencyInfo[]>(() => {
-		if (dependencies.status === "loading") return [];
-
-		const list: DependencyInfo[] = [];
-		const { ffmpeg, ffprobe, ytdlp } = dependencies.deps;
-
-		if (ffmpeg.status === "notInstalled") list.push(ffmpeg);
-		if (ffprobe.status === "notInstalled") list.push(ffprobe);
-		if (ytdlp.status === "notInstalled") list.push(ytdlp);
-
-		return list;
-	}, [dependencies]);
-
-	// Re-check dependencies when any install completes.
-	const prevInstalledRef = useRef(false);
-	useEffect(() => {
-		const anyInstalled = Object.values(installStates).some((s) => s.status === "installed");
-		// Only recheck on transition to "at least one installed".
-		if (anyInstalled && !prevInstalledRef.current) {
-			prevInstalledRef.current = true;
-			dependencies.recheck();
-		} else if (!anyInstalled) {
-			prevInstalledRef.current = false;
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [installStates]);
-
-	const handleInstall = useCallback(
-		(name: string) => {
-			const state = installStates[name];
-			// Prevent re-triggering while already installing.
-			if (state && isActiveInstall(state.status)) return;
-			install(name);
-		},
-		[install, installStates],
-	);
-
+	const mounted = useIsMounted();
 	const windowState = useWindow();
 	const isDragRegion = windowState.status === "loading" || windowState.caps.canSetPosition;
 
+	const {
+		confirmTarget,
+		requestConfirm,
+		requestConfirmAll,
+		closeConfirm,
+		confirmAndInstall,
+	} = useInstall();
+
+	const hasNotified = useRef(false);
+
+	const badgeDetails = useMemo<BadgeDetails>(() => {
+		if (dependencies.status === "loading") {
+			return { show: false, label: "", actionLabel: "", isMissing: false, tools: [] };
+		}
+		return getDependencyBadgeDetails(dependencies.deps);
+	}, [dependencies]);
+
+	const handleActionClick = useCallback(() => {
+		if (dependencies.status === "loading") return;
+		const { ffmpeg, ffprobe, ytdlp } = dependencies.deps;
+
+		const toolsToInstall: ToolInstallInfo[] = badgeDetails.tools.map((t) => {
+			const info = t === "yt-dlp" ? ytdlp : t === "ffmpeg" ? ffmpeg : ffprobe;
+			return {
+				name: t,
+				currentVersion: info?.version ?? "Not Installed",
+				targetVersion: info?.latestVersion ?? "Latest Release",
+			};
+		});
+
+		if (toolsToInstall.length === 1) {
+			const t = toolsToInstall[0];
+			requestConfirm(t.name, t.currentVersion, t.targetVersion);
+		} else {
+			requestConfirmAll(toolsToInstall);
+		}
+	}, [badgeDetails.tools, dependencies, requestConfirm, requestConfirmAll]);
+
+	// Trigger Sonner toast notification with tool-specific description listing disabled features
+	useEffect(() => {
+		if (dependencies.status === "loading" || hasNotified.current) return;
+
+		if (badgeDetails.show) {
+			hasNotified.current = true;
+
+			toast.info(badgeDetails.label, {
+				description: getToolSpecificDescription(badgeDetails.tools, badgeDetails.isMissing),
+				action: {
+					label: badgeDetails.actionLabel,
+					onClick: () => handleActionClick(),
+				},
+			});
+		}
+	}, [dependencies, badgeDetails, handleActionClick]);
+
 	return (
-		<div
-			className="flex-1 bg-secondary flex w-full min-h-16  max-h-16 select-none"
-			data-tauri-drag-region={isDragRegion}
-		>
+		<>
 			<div
-				className="sticky flex-1 flex items-center text-sm px-2 select-none border-b border-sidebar-border"
+				className="flex-1 bg-secondary flex w-full min-h-16 max-h-16 select-none"
 				data-tauri-drag-region={isDragRegion}
 			>
 				<div
-					className="flex-1 flex justify-start md:hidden duration-500 animate-in slide-in-from-left-9 fade-in-0 transition-[opacity,transform] ease-out"
-					data-tauri-drag-region
+					className="sticky flex-1 flex items-center text-sm px-2 select-none border-b border-sidebar-border"
+					data-tauri-drag-region={isDragRegion}
 				>
-					<SidebarTrigger></SidebarTrigger>
-				</div>
-				{dependencies.status !== "loading" && missingDeps.length > 0 && (
 					<div
-						className="flex-1 flex gap-1.5 items-center justify-start duration-500 animate-in slide-in-from-left-9 fade-in-0 transition-[opacity,transform] ease-out"
+						className="flex-1 flex justify-start items-center gap-2 duration-500 animate-in slide-in-from-top-9 fade-in-0 transition-[opacity,transform] ease-out"
 						data-tauri-drag-region
 					>
-						{missingDeps.map((d) => {
-							const state = installStates[d.name];
-							const installing = isActiveInstall(state?.status);
-
-							return (
-								<Badge
-									key={d.name}
-									variant="destructive"
-									className="cursor-pointer select-none gap-1"
-									onClick={() => handleInstall(d.name)}
-								>
-									{installing ? (
-										<Loader2 className="w-3 h-3 animate-spin" />
-									) : (
-										<Download className="w-3 h-3" />
-									)}
-									{d.name}
-								</Badge>
-							);
-						})}
+						<div className="md:hidden">
+							<SidebarTrigger />
+						</div>
+						{mounted && badgeDetails.show && (
+							<Button
+								variant="default"
+								size="xs"
+								onClick={handleActionClick}
+								className="gap-1 cursor-pointer select-none shadow-xs duration-500 animate-in slide-in-from-top-9 fade-in-0 transition-[opacity,transform] ease-out"
+							>
+								{badgeDetails.isMissing ? (
+									<Download className="w-3 h-3 text-primary-foreground" />
+								) : (
+									<Sparkles className="w-3 h-3 text-primary-foreground" />
+								)}
+								{badgeDetails.label}
+							</Button>
+						)}
 					</div>
-				)}
-				<div className="flex-1 flex justify-end" data-tauri-drag-region>
-					{PLATFORM === "macos" ? (
-						<MacOSControls
-							onClose={handleClose}
-							onMinimize={handleMinimize}
-							onMaximize={handleMaximize}
-						/>
-					) : (
-						<DefaultControls
-							onClose={handleClose}
-							onMinimize={handleMinimize}
-							onMaximize={handleMaximize}
-							canMaximize={
-								windowState.status === "loading" || windowState.caps.canMaximize
-							}
-							canMinimize={
-								windowState.status === "loading" || windowState.caps.canMinimize
-							}
-							loading={windowState.status === "loading"}
-						/>
-					)}
+					<div className="flex-1 flex justify-end" data-tauri-drag-region>
+						{PLATFORM === "macos" ? (
+							<MacOSControls
+								onClose={handleClose}
+								onMinimize={handleMinimize}
+								onMaximize={handleMaximize}
+							/>
+						) : (
+							<DefaultControls
+								onClose={handleClose}
+								onMinimize={handleMinimize}
+								onMaximize={handleMaximize}
+								canMaximize={
+									windowState.status === "loading" || windowState.caps.canMaximize
+								}
+								canMinimize={
+									windowState.status === "loading" || windowState.caps.canMinimize
+								}
+								loading={windowState.status === "loading"}
+							/>
+						)}
+					</div>
 				</div>
 			</div>
-		</div>
+
+			{/* Confirm Download & Install AlertDialog */}
+			<DependencyInstallDialog
+				confirmTarget={confirmTarget}
+				onClose={closeConfirm}
+				onConfirm={confirmAndInstall}
+			/>
+		</>
 	);
 }
