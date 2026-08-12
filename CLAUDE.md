@@ -15,7 +15,7 @@ TheAtlas Media — cross-platform desktop app for downloading, extracting, and c
 
 ## Commands
 
-- `bun --bun tauri dev` / `bun --bun tauri build` — run / build the app
+- `bun --bun tauri dev` / `bun run build:linux` / `bun run build:arch` — run / build app (Linux/Arch wrapper handles cache patches & makepkg)
 - `bun --bun next dev --turbopack` / `bun --bun next build` — frontend only
 - `bun --bun eslint` — lint
 - `bun --bun tsc --noEmit` — typecheck

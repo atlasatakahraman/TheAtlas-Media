@@ -1,0 +1,50 @@
+# Maintainer: Atlas Ata KAHRAMAN <atlasatakahraman>
+pkgname=theatlas-media-bin
+_binname=theatlas-media
+_pkgname_display="TheAtlas Media"
+pkgver=0.0.1
+pkgrel=1
+pkgdesc="Cross-platform desktop app for downloading, extracting, and converting media"
+arch=('x86_64')
+url="https://github.com/atlasatakahraman/TheAtlas-Media"
+license=('custom:AAKNCL-1.0')
+depends=(
+	'cairo'
+	'desktop-file-utils'
+	'gdk-pixbuf2'
+	'glib2'
+	'gtk3'
+	'hicolor-icon-theme'
+	'pango'
+	'webkit2gtk-4.1'
+)
+provides=("${_binname}")
+conflicts=("${_binname}")
+
+source=("TheAtlas_Media_${pkgver}_amd64.deb")
+sha256sums=('SKIP')
+
+prepare() {
+	cd "$srcdir"
+	if [ -f "data.tar.xz" ]; then
+		tar -xf data.tar.xz
+	elif [ -f "data.tar.gz" ]; then
+		tar -xf data.tar.gz
+	elif [ -f "data.tar.zst" ]; then
+		tar -xf data.tar.zst
+	elif [ -f "${_pkgname_display}_${pkgver}_amd64.deb" ] || [ -f "TheAtlas_Media_${pkgver}_amd64.deb" ]; then
+		DEB_FILE=$(ls *.deb 2>/dev/null | head -n 1)
+		ar x "$DEB_FILE" data.tar.gz 2>/dev/null || ar x "$DEB_FILE" data.tar.xz 2>/dev/null
+		tar -xf data.tar.*
+	fi
+}
+
+package() {
+	cd "$srcdir"
+
+	# Copy extracted binary, icons, desktop entry, and lib resources to pkgdir
+	cp -rp usr "$pkgdir/"
+
+	# Ensure correct directory permissions
+	chmod 755 "$pkgdir/usr" "$pkgdir/usr/bin" "$pkgdir/usr/share" "$pkgdir/usr/lib"
+}

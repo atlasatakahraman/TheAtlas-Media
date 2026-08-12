@@ -12,23 +12,41 @@ import {
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type { ConfirmTarget } from "@/hooks/use-install";
+import { formatToolName, getToolDisabledImpact } from "@/lib/tool-names";
 import { formatSizeMb } from "@/lib/utils";
-import { ArrowRight, Download, Package, ShieldAlert, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Copy, Download, Package, ShieldAlert, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import React from "react";
 
-function formatToolName(name: string): string {
-	const lower = name.toLowerCase();
-	if (lower === "ffmpeg") return "FFmpeg";
-	if (lower === "ffprobe") return "FFprobe";
-	if (lower === "yt-dlp" || lower === "ytdlp") return "yt-dlp";
-	return name;
+// ── Inline shimmer skeleton for async-loading size values ─────────────────
+function SizeShimmer() {
+	return (
+		<span className="inline-block w-12 h-3.5 rounded-full bg-primary/10 animate-pulse" />
+	);
 }
 
-function getToolDisabledImpact(name: string): string {
-	const lower = name.toLowerCase();
-	if (lower === "ffmpeg") return "Video transcoding, format conversion (MP4/MKV), and video trimming will be disabled until reinstalled.";
-	if (lower === "ffprobe") return "Media stream analysis, video codec detection, and metadata inspector will be disabled until reinstalled.";
-	if (lower === "yt-dlp" || lower === "ytdlp") return "YouTube video downloads, channel archiving, and playlist extractions will be disabled until reinstalled.";
-	return "Related media processing features will be disabled until reinstalled.";
+function SizeDisplay({ sizeMb }: { sizeMb: number | undefined }) {
+	if (sizeMb === undefined || sizeMb <= 0) return <SizeShimmer />;
+	return <>{formatSizeMb(sizeMb)}</>;
+}
+
+function formatVersionDisplay(version: string | null | undefined): string {
+	if (!version || version === "Not Installed") return "Not Installed";
+	const lower = version.trim().toLowerCase();
+	if (lower === "latest release" || lower === "latest" || lower === "vlatest") {
+		return "Latest Release";
+	}
+
+	let v = version.trim();
+	const match =
+		v.match(/(?:ffmpeg|ffprobe|yt-dlp)?\s*version\s+([^\s]+)/i) ||
+		v.match(/^(?:ffmpeg|ffprobe|yt-dlp)\s+([^\s]+)/i);
+	if (match && match[1]) {
+		v = match[1];
+	}
+
+	if (v.startsWith("v") || v.startsWith("V")) return v;
+	if (v.startsWith("n")) return `v${v.slice(1)}`;
+	return `v${v}`;
 }
 
 export interface DependencyInstallDialogProps {
@@ -37,7 +55,7 @@ export interface DependencyInstallDialogProps {
 	onConfirm: () => void;
 }
 
-export function DependencyInstallDialog({
+export const DependencyInstallDialog = React.memo(function DependencyInstallDialog({
 	confirmTarget,
 	onClose,
 	onConfirm,
@@ -51,9 +69,10 @@ export function DependencyInstallDialog({
 							<Sparkles className="w-4 h-4" />
 						</div>
 						<span>
-							{confirmTarget?.isAll
-								? "Install All Missing Dependencies"
-								: `Install ${formatToolName(confirmTarget?.name ?? "")}?`}
+							{confirmTarget?.title ??
+								(confirmTarget?.isAll
+									? "Install All Missing Dependencies"
+									: `Install ${formatToolName(confirmTarget?.name ?? "")}?`)}
 						</span>
 					</AlertDialogTitle>
 					<AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
@@ -73,21 +92,15 @@ export function DependencyInstallDialog({
 									<span>{formatToolName(tool.name)}</span>
 								</div>
 								<div className="text-[11px] text-muted-foreground flex items-center gap-1.5 pl-6 font-mono">
-									<span>
-										{tool.currentVersion && tool.currentVersion !== "Not Installed"
-											? (tool.currentVersion.startsWith("v") ? tool.currentVersion : `v${tool.currentVersion}`)
-											: "Not Installed"}
-									</span>
+									<span>{formatVersionDisplay(tool.currentVersion)}</span>
 									<ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
 									<span className="font-medium text-foreground">
-										{tool.targetVersion && tool.targetVersion !== "Latest Release"
-											? (tool.targetVersion.startsWith("v") ? tool.targetVersion : `v${tool.targetVersion}`)
-											: tool.targetVersion ?? "Latest"}
+										{formatVersionDisplay(tool.targetVersion)}
 									</span>
 								</div>
 							</div>
 							<span className="rounded-full bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] px-2.5 py-0.5 shrink-0 font-medium shadow-2xs">
-								{formatSizeMb(tool.sizeMb)}
+								<SizeDisplay sizeMb={tool.sizeMb} />
 							</span>
 						</div>
 					))}
@@ -100,7 +113,7 @@ export function DependencyInstallDialog({
 						<div className="flex items-center gap-1 shrink-0 whitespace-nowrap">
 							<span className="text-muted-foreground font-normal">Total:</span>
 							<span className="font-mono font-medium text-primary text-xs">
-								{formatSizeMb(confirmTarget?.sizeMb)}
+								<SizeDisplay sizeMb={confirmTarget?.sizeMb} />
 							</span>
 						</div>
 					</div>
@@ -120,7 +133,7 @@ export function DependencyInstallDialog({
 			</AlertDialogContent>
 		</AlertDialog>
 	);
-}
+});
 
 export interface DependencyUninstallDialogProps {
 	targetTool: string | null;
@@ -128,7 +141,7 @@ export interface DependencyUninstallDialogProps {
 	onConfirm: () => void;
 }
 
-export function DependencyUninstallDialog({
+export const DependencyUninstallDialog = React.memo(function DependencyUninstallDialog({
 	targetTool,
 	onClose,
 	onConfirm,
@@ -176,4 +189,178 @@ export function DependencyUninstallDialog({
 			</AlertDialogContent>
 		</AlertDialog>
 	);
+});
+
+// ── Clear WebKit Cache Confirmation Dialog ────────────────────────────────────
+export interface ClearWebKitCacheDialogProps {
+	open: boolean;
+	cacheSizeMb: number | null;
+	onClose: () => void;
+	onConfirm: () => void;
 }
+
+export const ClearWebKitCacheDialog = React.memo(function ClearWebKitCacheDialog({
+	open,
+	cacheSizeMb,
+	onClose,
+	onConfirm,
+}: ClearWebKitCacheDialogProps) {
+	return (
+		<AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+				<AlertDialogHeader className="space-y-1.5 text-left">
+					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
+						<div className="p-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 shadow-2xs">
+							<Trash2 className="w-4 h-4" />
+						</div>
+						<span>Clear WebKit Cache?</span>
+					</AlertDialogTitle>
+					<AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+						This will permanently delete the application&apos;s WebKit cache stored on disk. The app will rebuild it automatically on next use.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+
+				<div className="rounded-xl border border-destructive/20 bg-destructive/5 p-3 space-y-1.5 text-xs text-muted-foreground">
+					<div className="flex items-center gap-1.5 font-medium text-destructive">
+						<ShieldAlert className="w-3.5 h-3.5 shrink-0" />
+						<span>Cache to be cleared</span>
+					</div>
+					<div className="flex items-center justify-between pt-0.5">
+						<span>WebKit App Cache</span>
+						<span className="font-mono font-medium text-foreground">
+							{cacheSizeMb !== null && cacheSizeMb > 0
+								? `~${cacheSizeMb.toFixed(1)} MB`
+								: "—"}
+						</span>
+					</div>
+					<p className="text-[11px] opacity-80 pt-1 border-t border-destructive/10">
+						The app may load slightly slower on first use after clearing, while assets are re-cached.
+					</p>
+				</div>
+
+				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
+					<AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
+					<AlertDialogAction
+						onClick={onConfirm}
+						className="rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/95 px-4 py-2 text-xs font-medium gap-1.5 shadow-xs"
+					>
+						<Trash2 className="w-3.5 h-3.5" /> Clear Cache
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
+});
+
+// ── Up To Date Alert Dialog ──────────────────────────────────────────────────
+export interface ToolChecksumInfo {
+	name: string;
+	version: string;
+	sha256: string;
+	isValid?: boolean;
+}
+
+export interface UpToDateDialogProps {
+	open: boolean;
+	onClose: () => void;
+	tools?: ToolChecksumInfo[];
+}
+
+export const UpToDateDialog = React.memo(function UpToDateDialog({
+	open,
+	onClose,
+	tools = [],
+}: UpToDateDialogProps) {
+	const [copiedKey, setCopiedKey] = React.useState<string | null>(null);
+
+	const handleCopy = (name: string, sha256: string) => {
+		navigator.clipboard.writeText(sha256);
+		setCopiedKey(name);
+		setTimeout(() => setCopiedKey(null), 2000);
+	};
+
+	return (
+		<AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+				<AlertDialogHeader className="space-y-1.5 text-left">
+					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
+						<div className="p-2 rounded-lg bg-chart-1/10 text-chart-1 border border-chart-1/20 shadow-2xs">
+							<CheckCircle2 className="w-4 h-4" />
+						</div>
+						<span>Dependencies & SHA-256 Validated</span>
+					</AlertDialogTitle>
+					<AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+						All required binary tools (FFmpeg, FFprobe, and yt-dlp) are up to date and their local file SHA-256 checksums have been verified.
+					</AlertDialogDescription>
+				</AlertDialogHeader>
+
+				<div className="rounded-xl border border-sidebar-border bg-background/60 p-3 space-y-2 text-xs text-muted-foreground">
+					<div className="flex items-center justify-between gap-2 pb-1.5 border-b border-sidebar-border/60 font-medium text-foreground">
+						<div className="flex items-center gap-1.5 text-chart-1">
+							<ShieldCheck className="w-3.5 h-3.5" />
+							<span>Verified SHA-256 Checksums</span>
+						</div>
+						<span className="text-[11px] text-muted-foreground font-mono font-normal">
+							{tools.length} Tools Valid
+						</span>
+					</div>
+
+					{tools.length > 0 ? (
+						<div className="space-y-2 pt-0.5">
+							{tools.map((t) => (
+								<div
+									key={t.name}
+									className="rounded-lg border border-sidebar-border/60 bg-sidebar/80 p-2.5 space-y-1.5 text-left"
+								>
+									<div className="flex items-center justify-between gap-2 text-foreground font-medium">
+										<div className="flex items-center gap-2">
+											<Package className="w-4 h-4 text-primary shrink-0" />
+											<span>{formatToolName(t.name)}</span>
+										</div>
+										<span className="rounded-full bg-chart-1/10 text-chart-1 border border-chart-1/30 text-[10px] px-2 py-0.5 font-mono font-medium flex items-center gap-1">
+											<CheckCircle2 className="w-3 h-3" />
+											Verified
+										</span>
+									</div>
+
+									<div className="flex items-center justify-between gap-2 font-mono text-[11px]">
+										<span className="text-muted-foreground">
+											{formatVersionDisplay(t.version)}
+										</span>
+										<button
+											type="button"
+											onClick={() => handleCopy(t.name, t.sha256)}
+											className="inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground bg-background/60 hover:bg-background border border-sidebar-border/60 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+											title="Click to copy SHA-256"
+										>
+											{copiedKey === t.name ? (
+												<Check className="w-3 h-3 text-chart-1" />
+											) : (
+												<Copy className="w-3 h-3 text-primary/70" />
+											)}
+											<span>{t.sha256.slice(0, 8)}…{t.sha256.slice(-8)}</span>
+										</button>
+									</div>
+								</div>
+							))}
+						</div>
+					) : (
+						<p className="text-xs text-foreground/80 leading-relaxed pt-1">
+							Your installation is completely up to date. You can continue using all features.
+						</p>
+					)}
+				</div>
+
+				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end">
+					<AlertDialogAction
+						onClick={onClose}
+						className="rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 px-5 py-2 text-xs font-medium gap-1.5 shadow-xs"
+					>
+						Done
+					</AlertDialogAction>
+				</AlertDialogFooter>
+			</AlertDialogContent>
+		</AlertDialog>
+	);
+});
+

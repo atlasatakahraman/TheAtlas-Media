@@ -412,6 +412,102 @@ pub(crate) async fn read_version(path: &Path, tool: Tool) -> Result<String, Stri
     parse_version_line(tool, &combined)
 }
 
+async fn dir_size_bytes(dir: &Path) -> u64 {
+    let mut total_bytes: u64 = 0;
+    let mut stack = vec![dir.to_path_buf()];
+
+    while let Some(current_dir) = stack.pop() {
+        if let Ok(mut read_dir) = tokio::fs::read_dir(&current_dir).await {
+            while let Ok(Some(entry)) = read_dir.next_entry().await {
+                if let Ok(file_type) = entry.file_type().await {
+                    if file_type.is_dir() {
+                        stack.push(entry.path());
+                    } else if file_type.is_file() {
+                        if let Ok(metadata) = entry.metadata().await {
+                            total_bytes += metadata.len();
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    total_bytes
+}
+
+#[tauri::command]
+pub async fn get_webkit_cache_size_mb(app: AppHandle) -> Result<f64, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let cache_path = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("WebKitCache");
+
+        if !cache_path.exists() {
+            return Ok(0.0);
+        }
+
+        let total_bytes = dir_size_bytes(&cache_path).await;
+        Ok(total_bytes as f64 / 1_048_576.0)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        Ok(0.0)
+    }
+}
+
+#[tauri::command]
+pub async fn clear_webkit_cache(app: AppHandle) -> Result<f64, String> {
+    #[cfg(target_os = "linux")]
+    {
+        let cache_path = app
+            .path()
+            .app_data_dir()
+            .map_err(|e| e.to_string())?
+            .join("WebKitCache");
+
+        if !cache_path.exists() {
+            return Ok(0.0);
+        }
+
+        // Measure first, then wipe contents (keep the WebKitCache dir itself)
+        let cleared_bytes = dir_size_bytes(&cache_path).await;
+
+        let mut read_dir = tokio::fs::read_dir(&cache_path)
+            .await
+            .map_err(|e| e.to_string())?;
+
+        while let Ok(Some(entry)) = read_dir.next_entry().await {
+            let entry_path = entry.path();
+            if let Ok(metadata) = tokio::fs::metadata(&entry_path).await {
+                let _ = if metadata.is_dir() {
+                    tokio::fs::remove_dir_all(&entry_path).await
+                } else {
+                    tokio::fs::remove_file(&entry_path).await
+                };
+            }
+        }
+
+        let size_mb = cleared_bytes as f64 / 1_048_576.0;
+        log::info!(
+            "Cleared {:.2} MB WebKit cache from {:?}",
+            size_mb,
+            cache_path
+        );
+        Ok(size_mb)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = app;
+        Err("WebKit cache clearing is only supported on Linux".to_string())
+    }
+}
+
 fn parse_version_line(tool: Tool, text: &str) -> Result<String, String> {
     let first_line = text
         .lines()
@@ -419,6 +515,26 @@ fn parse_version_line(tool: Tool, text: &str) -> Result<String, String> {
         .map(str::trim)
         .filter(|l| !l.is_empty())
         .ok_or_else(|| format!("{} returned empty version output", tool.name()))?;
+
+    let parts: Vec<&str> = first_line.split_whitespace().collect();
+    if let Some(pos) = parts
+        .iter()
+        .position(|&p| p.eq_ignore_ascii_case("version"))
+    {
+        if let Some(ver) = parts.get(pos + 1) {
+            return Ok((*ver).to_string());
+        }
+    }
+
+    if tool.name() == "yt-dlp" {
+        if let Some(ver) = parts.first() {
+            if *ver != "yt-dlp" {
+                return Ok((*ver).to_string());
+            } else if let Some(ver2) = parts.get(1) {
+                return Ok((*ver2).to_string());
+            }
+        }
+    }
 
     Ok(first_line.to_string())
 }

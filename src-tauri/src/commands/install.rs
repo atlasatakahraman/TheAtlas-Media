@@ -21,6 +21,7 @@ pub struct InstallProgress {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum InstallProgressStatus {
+    CheckingManifest,
     Downloading,
     Extracting,
     Verifying,
@@ -178,14 +179,34 @@ pub(crate) async fn do_install(
 async fn install_ffmpeg_bundle(app: &AppHandle, bin_dir: &Path) -> Result<(), InstallError> {
     let url = ffmpeg_download_url()?;
     let names = DownloadTarget::FfmpegBundle.event_names();
+    let client = make_http_client()?;
 
-    // Download archive to a temp file inside our managed directory.
+    // ── Step 1: Fetch SHA-256 manifest ──────────────────────────────────────
+    emit_to_names(
+        app,
+        names,
+        InstallProgressStatus::CheckingManifest,
+        0.0,
+        "Fetching FFmpeg release manifest…",
+    );
+    let expected_sha256 = fetch_ffmpeg_expected_sha256(&client).await?;
+
+    // ── Step 2: Download archive ─────────────────────────────────────────────
     let archive_ext = archive_extension();
     let archive_path = bin_dir.join(format!("ffmpeg-download.{archive_ext}"));
+    download_file(app, &client, url, &archive_path, names).await?;
 
-    download_file(app, url, &archive_path, names).await?;
+    // ── Step 3: Verify SHA-256 of downloaded archive ─────────────────────────
+    emit_to_names(
+        app,
+        names,
+        InstallProgressStatus::Verifying,
+        0.0,
+        "Verifying SHA-256 checksum…",
+    );
+    verify_download_sha256(&archive_path, &expected_sha256).await?;
 
-    // Extract ffmpeg + ffprobe binaries.
+    // ── Step 4: Extract binaries ─────────────────────────────────────────────
     emit_to_names(
         app,
         names,
@@ -199,24 +220,21 @@ async fn install_ffmpeg_bundle(app: &AppHandle, bin_dir: &Path) -> Result<(), In
     let files_to_extract = [ffmpeg_exe, ffprobe_exe];
 
     extract_archive(&archive_path, bin_dir, &files_to_extract).await?;
-
-    // Clean up the archive.
     let _ = tokio::fs::remove_file(&archive_path).await;
 
-    // Set executable on unix.
     #[cfg(unix)]
     {
         set_executable(&bin_dir.join(ffmpeg_exe))?;
         set_executable(&bin_dir.join(ffprobe_exe))?;
     }
 
-    // Verify both binaries.
+    // ── Step 5: Verify binaries run correctly ────────────────────────────────
     emit_to_names(
         app,
         names,
         InstallProgressStatus::Verifying,
         0.0,
-        "Verifying binaries…",
+        "Verifying installed binaries…",
     );
 
     verify_tool(app, Tool::FFmpeg, bin_dir).await?;
@@ -237,22 +255,43 @@ async fn install_ytdlp(app: &AppHandle, bin_dir: &Path) -> Result<(), InstallErr
     let url = ytdlp_download_url()?;
     let names = DownloadTarget::YtDlp.event_names();
     let dest = bin_dir.join(Tool::YTdlp.exe_name());
+    let client = make_http_client()?;
 
-    download_file(app, url, &dest, names).await?;
+    // ── Step 1: Fetch SHA-256 manifest ──────────────────────────────────────
+    emit_to_names(
+        app,
+        names,
+        InstallProgressStatus::CheckingManifest,
+        0.0,
+        "Fetching yt-dlp release manifest…",
+    );
+    let expected_sha256 = fetch_ytdlp_expected_sha256(&client).await?;
 
-    // Set executable on unix.
-    #[cfg(unix)]
-    set_executable(&dest)?;
+    // ── Step 2: Download binary ──────────────────────────────────────────────
+    download_file(app, &client, url, &dest, names).await?;
 
-    // Verify.
+    // ── Step 3: Verify SHA-256 ───────────────────────────────────────────────
     emit_to_names(
         app,
         names,
         InstallProgressStatus::Verifying,
         0.0,
-        "Verifying binary…",
+        "Verifying SHA-256 checksum…",
     );
+    verify_download_sha256(&dest, &expected_sha256).await?;
 
+    // ── Step 4: Set executable bit ───────────────────────────────────────────
+    #[cfg(unix)]
+    set_executable(&dest)?;
+
+    // ── Step 5: Verify binary runs correctly ─────────────────────────────────
+    emit_to_names(
+        app,
+        names,
+        InstallProgressStatus::Verifying,
+        0.0,
+        "Verifying installed binary…",
+    );
     verify_tool(app, Tool::YTdlp, bin_dir).await?;
 
     emit_to_names(
@@ -272,6 +311,7 @@ async fn install_ytdlp(app: &AppHandle, bin_dir: &Path) -> Result<(), InstallErr
 
 async fn download_file(
     app: &AppHandle,
+    client: &reqwest::Client,
     url: &str,
     dest: &Path,
     event_names: &[&str],
@@ -281,13 +321,8 @@ async fn download_file(
         event_names,
         InstallProgressStatus::Downloading,
         0.0,
-        &format!("Downloading from {url}"),
+        "Starting download…",
     );
-
-    let client = reqwest::Client::builder()
-        .user_agent("TheAtlas-Media/0.0.1")
-        .build()
-        .map_err(|e| InstallError::DownloadFailed(e.to_string()))?;
 
     let response = client
         .get(url)
@@ -309,7 +344,12 @@ async fn download_file(
         .await
         .map_err(|e| InstallError::FsError(e.to_string()))?;
 
-    // Stream chunks for real-time progress.
+    // Throttle: emit at most once per 250 ms OR when progress jumps ≥ 1 %.
+    let mut last_emitted_pct: f64 = -1.0;
+    let mut last_emit_at = std::time::Instant::now();
+    let mut bytes_at_last_emit: u64 = 0;
+    let throttle = std::time::Duration::from_millis(250);
+
     let mut response = response;
     while let Some(chunk) = response
         .chunk()
@@ -324,24 +364,61 @@ async fn download_file(
 
         if total_size > 0 {
             let progress = (downloaded as f64 / total_size as f64) * 100.0;
-            let msg = format!(
-                "{:.1} MB / {:.1} MB",
-                downloaded as f64 / 1_048_576.0,
-                total_size as f64 / 1_048_576.0
-            );
-            emit_to_names(
-                app,
-                event_names,
-                InstallProgressStatus::Downloading,
-                progress,
-                &msg,
-            );
+            let pct_floor = (progress * 10.0).floor() / 10.0;
+            let elapsed = last_emit_at.elapsed();
+
+            if elapsed >= throttle || (pct_floor - last_emitted_pct).abs() >= 1.0 {
+                // Instantaneous speed over the last emit interval
+                let elapsed_secs = elapsed.as_secs_f64().max(0.001);
+                let bytes_since = downloaded.saturating_sub(bytes_at_last_emit);
+                let speed_bps = bytes_since as f64 / elapsed_secs;
+                let speed_str = if speed_bps >= 1_048_576.0 {
+                    format!("{:.1} MB/s", speed_bps / 1_048_576.0)
+                } else if speed_bps >= 1024.0 {
+                    format!("{:.0} KB/s", speed_bps / 1024.0)
+                } else {
+                    "< 1 KB/s".to_string()
+                };
+
+                let msg = format!(
+                    "{:.1} / {:.1} MB  •  {}",
+                    downloaded as f64 / 1_048_576.0,
+                    total_size as f64 / 1_048_576.0,
+                    speed_str,
+                );
+                emit_to_names(
+                    app,
+                    event_names,
+                    InstallProgressStatus::Downloading,
+                    progress,
+                    &msg,
+                );
+                last_emitted_pct = pct_floor;
+                bytes_at_last_emit = downloaded;
+                last_emit_at = std::time::Instant::now();
+            }
         }
     }
 
     file.flush()
         .await
         .map_err(|e| InstallError::FsError(e.to_string()))?;
+
+    // Final 100 % event.
+    if total_size > 0 {
+        let msg = format!(
+            "{:.1} / {:.1} MB",
+            downloaded as f64 / 1_048_576.0,
+            total_size as f64 / 1_048_576.0
+        );
+        emit_to_names(
+            app,
+            event_names,
+            InstallProgressStatus::Downloading,
+            100.0,
+            &msg,
+        );
+    }
 
     Ok(())
 }
@@ -542,6 +619,130 @@ fn emit_to_names(
     }
 }
 
+// ---------------------------------------------------------------------------
+// Manifest & SHA-256 verification
+// ---------------------------------------------------------------------------
+
+fn ytdlp_binary_filename() -> &'static str {
+    if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        "yt-dlp_linux"
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        "yt-dlp_linux_aarch64"
+    } else if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
+        "yt-dlp.exe"
+    } else {
+        "yt-dlp_linux"
+    }
+}
+
+fn ffmpeg_sha256_url() -> Result<&'static str, InstallError> {
+    if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
+        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz.sha256")
+    } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
+        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz.sha256")
+    } else if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
+        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip.sha256")
+    } else {
+        Err(InstallError::UnsupportedPlatform)
+    }
+}
+
+async fn fetch_ytdlp_expected_sha256(client: &reqwest::Client) -> Result<String, InstallError> {
+    const SUMS_URL: &str = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/SHA2-256SUMS";
+    let filename = ytdlp_binary_filename();
+
+    let text = client
+        .get(SUMS_URL)
+        .send()
+        .await
+        .map_err(|e| {
+            InstallError::VerificationFailed(format!("Cannot fetch yt-dlp SHA2-256SUMS: {e}"))
+        })?
+        .text()
+        .await
+        .map_err(|e| {
+            InstallError::VerificationFailed(format!("Cannot read yt-dlp SHA2-256SUMS: {e}"))
+        })?;
+
+    for line in text.lines() {
+        // Format: "<hash>  <filename>"
+        if let Some((hash, name)) = line.split_once("  ") {
+            if name.trim() == filename {
+                let hash = hash.trim().to_lowercase();
+                if hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()) {
+                    return Ok(hash);
+                }
+            }
+        }
+    }
+
+    Err(InstallError::VerificationFailed(format!(
+        "No SHA-256 entry for '{}' in yt-dlp SHA2-256SUMS manifest",
+        filename
+    )))
+}
+
+async fn fetch_ffmpeg_expected_sha256(client: &reqwest::Client) -> Result<String, InstallError> {
+    let sha256_url = ffmpeg_sha256_url()?;
+
+    let text = client
+        .get(sha256_url)
+        .send()
+        .await
+        .map_err(|e| {
+            InstallError::VerificationFailed(format!("Cannot fetch FFmpeg .sha256 manifest: {e}"))
+        })?
+        .text()
+        .await
+        .map_err(|e| {
+            InstallError::VerificationFailed(format!("Cannot read FFmpeg .sha256 manifest: {e}"))
+        })?;
+
+    // BtbN format: "<hash>  <filename>" or just "<hash>"
+    let hash = text
+        .split_whitespace()
+        .next()
+        .unwrap_or("")
+        .trim()
+        .to_lowercase();
+
+    if hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()) {
+        Ok(hash)
+    } else {
+        Err(InstallError::VerificationFailed(format!(
+            "Invalid SHA-256 in FFmpeg manifest: '{hash}'"
+        )))
+    }
+}
+
+async fn verify_download_sha256(dest: &Path, expected: &str) -> Result<(), InstallError> {
+    let computed = super::dependency::compute_file_sha256(dest)
+        .await
+        .map_err(|e| {
+            InstallError::VerificationFailed(format!("SHA-256 computation failed: {e}"))
+        })?;
+
+    if computed.to_lowercase() != expected.to_lowercase() {
+        // Remove tampered/corrupted file immediately
+        let _ = tokio::fs::remove_file(dest).await;
+        return Err(InstallError::VerificationFailed(format!(
+            "SHA-256 mismatch — download may be corrupted or tampered.\nExpected: {expected}\nGot:      {computed}"
+        )));
+    }
+
+    log::info!("SHA-256 verified OK: {computed}");
+    Ok(())
+}
+
+fn make_http_client() -> Result<reqwest::Client, InstallError> {
+    reqwest::Client::builder()
+        .user_agent("TheAtlas-Media/0.0.1")
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .timeout(std::time::Duration::from_secs(30))
+        .build()
+        .map_err(|e| InstallError::DownloadFailed(e.to_string()))
+}
+
 #[cfg(unix)]
 fn set_executable(path: &Path) -> Result<(), InstallError> {
     use std::os::unix::fs::PermissionsExt;
@@ -569,18 +770,32 @@ pub async fn get_download_size_mb(name: String) -> Result<f64, InstallError> {
 
     let client = reqwest::Client::builder()
         .user_agent("TheAtlas-Media/0.0.1")
-        .timeout(std::time::Duration::from_secs(5))
+        .redirect(reqwest::redirect::Policy::limited(10))
+        .timeout(std::time::Duration::from_secs(8))
         .build()
         .map_err(|e| InstallError::DownloadFailed(e.to_string()))?;
 
     let resp = client
-        .head(url)
+        .get(url)
+        .header(reqwest::header::RANGE, "bytes=0-0")
         .send()
         .await
         .map_err(|e| InstallError::DownloadFailed(e.to_string()))?;
 
-    let bytes = resp.content_length().unwrap_or(0);
-    let mb = bytes as f64 / 1_048_576.0;
+    let total_bytes = if let Some(range) = resp.headers().get(reqwest::header::CONTENT_RANGE) {
+        if let Ok(s) = range.to_str() {
+            s.rsplit('/')
+                .next()
+                .and_then(|v| v.parse::<u64>().ok())
+                .unwrap_or(0)
+        } else {
+            0
+        }
+    } else {
+        resp.content_length().unwrap_or(0)
+    };
+
+    let mb = total_bytes as f64 / 1_048_576.0;
 
     Ok(mb)
 }

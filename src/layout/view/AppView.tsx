@@ -75,9 +75,9 @@ export default function AppView({ children }: ViewProps) {
 	}, [sidebarSearch])
 
 	return (
-		<SidebarProvider defaultOpen={true}>
+		<SidebarProvider defaultOpen={true} className="h-svh overflow-hidden">
 			<Appbar />
-			<SidebarInset>
+			<SidebarInset className="h-svh overflow-hidden">
 				<Header></Header>
 				<div key={pathname} className="flex-1 min-w-0 overflow-auto">
 					{children}

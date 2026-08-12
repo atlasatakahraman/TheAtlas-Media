@@ -15,7 +15,9 @@
 		"next:start": "bun --bun next start",
 		"lint": "bun --bun eslint",
 		"tauri:dev": "bun --bun tauri dev",
-		"tauri:build": "bun --bun icon && bun --bun tauri build"
+		"tauri:build": "bun --bun icon && bun --bun tauri build",
+		"build:linux": "bun --bun icon && bash scripts/build-linux.sh",
+		"build:arch": "bash scripts/build-arch-pkg.sh"
 	},
 	"dependencies": {
 		"@base-ui/react": "^1.7.0",

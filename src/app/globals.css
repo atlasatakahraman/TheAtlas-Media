@@ -113,6 +113,59 @@
 	--sidebar-ring: #3b3628;
 }
 
+.dark {
+	/* Core Canvas & Text — warm dark obsidian #242220 and warm cream text #ebe7df from attachments */
+	--background: #242220;
+	--foreground: #ebe7df;
+
+	/* Card / Popover — rich dark charcoal #2b2925 from attachments */
+	--card: #2b2925;
+	--card-foreground: #ebe7df;
+	--popover: #2b2925;
+	--popover-foreground: #ebe7df;
+
+	/* Primary — warm cream highlight #ebe7df with dark charcoal text #1c1b19 */
+	--primary: #ebe7df;
+	--primary-foreground: #1c1b19;
+
+	/* Secondary */
+	--secondary: #33302b;
+	--secondary-foreground: #ebe7df;
+
+	/* Muted */
+	--muted: #2b2925;
+	--muted-foreground: #9e988c;
+
+	/* Accent */
+	--accent: #383531;
+	--accent-foreground: #ebe7df;
+
+	/* Destructive */
+	--destructive: #e55353;
+
+	/* Borders / Input / Ring */
+	--border: #3a3834;
+	--input: #3a3834;
+	--ring: #ebe7df;
+
+	/* Charts */
+	--chart-1: #68aa4a;
+	--chart-2: #24997e;
+	--chart-3: #c9a44c;
+	--chart-4: #78907e;
+	--chart-5: #e06c72;
+
+	/* Sidebar — matching attachment dark card #2b2925 */
+	--sidebar: #2b2925;
+	--sidebar-foreground: #ebe7df;
+	--sidebar-primary: #ebe7df;
+	--sidebar-primary-foreground: #1c1b19;
+	--sidebar-accent: #353330;
+	--sidebar-accent-foreground: #ebe7df;
+	--sidebar-border: #3a3834;
+	--sidebar-ring: #ebe7df;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

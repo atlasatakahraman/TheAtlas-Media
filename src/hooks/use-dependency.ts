@@ -2,7 +2,7 @@
 
 import { get_dependencies } from "@/lib/dependency-env";
 import { DependencyReport } from "@/lib/types";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type DependencyCurrentState =
 	| { status: "loading" }
@@ -41,9 +41,11 @@ if (typeof window !== "undefined") {
 	refreshDependencies();
 }
 
-export default function useDependency(): DependencyCurrentState & {
+export type DependencyHookResult = DependencyCurrentState & {
 	recheck: () => Promise<DependencyReport | null>;
-} {
+};
+
+export default function useDependency(): DependencyHookResult {
 	const [state, setState] = useState<DependencyCurrentState>(() => {
 		if (cachedReport) {
 			return { status: "ready", deps: cachedReport };
@@ -73,5 +75,12 @@ export default function useDependency(): DependencyCurrentState & {
 		return await refreshDependencies();
 	}, []);
 
-	return { ...state, recheck };
+	// Stabilize the return identity: only produces a new object when
+	// the actual state reference or recheck function changes.
+	// Previously `{ ...state, recheck }` created a fresh object every render,
+	// forcing all consumers to re-render even when nothing changed.
+	return useMemo<DependencyHookResult>(
+		() => ({ ...state, recheck }),
+		[state, recheck],
+	);
 }

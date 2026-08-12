@@ -1,0 +1,21 @@
+pkgbase = theatlas-media-bin
+	pkgdesc = Cross-platform desktop app for downloading, extracting, and converting media
+	pkgver = 0.0.1
+	pkgrel = 1
+	url = https://github.com/atlasatakahraman/TheAtlas-Media
+	arch = x86_64
+	license = custom:AAKNCL-1.0
+	depends = cairo
+	depends = desktop-file-utils
+	depends = gdk-pixbuf2
+	depends = glib2
+	depends = gtk3
+	depends = hicolor-icon-theme
+	depends = pango
+	depends = webkit2gtk-4.1
+	provides = theatlas-media
+	conflicts = theatlas-media
+	source = TheAtlas_Media_0.0.1_amd64.deb
+	sha256sums = SKIP
+
+pkgname = theatlas-media-bin

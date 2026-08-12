@@ -88,6 +88,13 @@ async fn set_window_position(window: tauri::WebviewWindow, x: i32, y: i32) -> Re
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Force disable OpenGL explicit sync on NVIDIA cards (prevents compositor deadlock
+    // when startViewTransition is used under Wayland on Linux)
+    #[cfg(target_os = "linux")]
+    {
+        std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
@@ -109,6 +116,8 @@ pub fn run() {
             commands::dependency::check_installed_dependencies,
             commands::dependency::check_dependencies,
             commands::dependency::get_app_storage_size_mb,
+            commands::dependency::get_webkit_cache_size_mb,
+            commands::dependency::clear_webkit_cache,
             commands::install::install_dependency,
             commands::install::install_all_missing,
             commands::install::uninstall_dependency,
