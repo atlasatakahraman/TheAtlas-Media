@@ -33,30 +33,30 @@ The project focuses on delivering:
 ## 🧠 Key Features
 
 - 🖥️ **Cross-platform desktop application** (Windows · macOS · Linux)
-- 🎨 **Modern UI/UX** powered by Next.js + shadcn/ui
+- 🎨 **Modern UI/UX** powered by Next.js + shadcn/ui with dark theme support & header theme switcher
+- 📦 **Automated Dependency Management** — Status detection, progress tracking, and sha256 checksum integrity verification for `yt-dlp` & `FFmpeg`/`FFprobe`
+- 🧹 **Storage & Cache Control** — Live app storage tracking and one-click application cache clearing
 - 🎞️ **Video downloading & format conversion**
 - 🎵 **Audio extraction & metadata tagging**
 - 🔐 **Local-first & privacy-focused** architecture
 - 🦀 **Rust-powered backend** for performance and safety
-- ⚡ **Native parallel-segment downloads** (no slow CLI wrapper)
-- 🧩 **Format presets** instead of raw flags — safer and simpler
+- 🐧 **Linux & Arch Packaging** — Dedicated Linux and Arch Linux (`PKGBUILD`) build scripts
 
 ---
 
 ## 🧩 Technology Stack
 
 ### Frontend
-- **Next.js 16** (App Router, Turbopack)
+- **Next.js 16** (App Router, Turbopack, static export)
 - **TypeScript**
-- **shadcn/ui** + **Tailwind CSS v4**
+- **shadcn/ui** + **Tailwind CSS v4** + **next-themes** + **Sonner**
 
 ### Backend
 - **Rust 1.89+**
-- **Tauri 2.x**
-- **boul2gom yt-dlp** Rust crate (managed binaries, native HTTP)
+- **Tauri 2.x** with custom IPC handlers for dependency management, checksum verification, storage calculation, and updates
 
 ### Media Processing
-- **FFmpeg** (managed automatically by the yt-dlp crate)
+- **yt-dlp** & **FFmpeg / FFprobe** (managed locally or system-wide with sha256 integrity validation)
 - **lofty** for audio metadata tagging
 
 ---
@@ -72,9 +72,12 @@ The project focuses on delivering:
 
 ---
 
-## 📦 Installation
+## 📦 Installation & Packaging
 
-> 🚧 Installation instructions will be added as the project matures. Track progress in the [CHANGELOG](./documentation/CHANGELOG.md).
+- **Arch Linux**: `bun run build:arch` (generates Arch package via `packaging/arch/PKGBUILD`)
+- **Generic Linux**: `bun run build:linux` (runs Linux build script with cache handling)
+
+> 🚧 Full pre-built releases will be made available as the project matures.
 
 ---
 
@@ -82,7 +85,8 @@ The project focuses on delivering:
 
 TheAtlas Media is under **active development**.
 
-Phase 0 (scaffolding, governance, CI) is complete. Phase 1 (Rust backend extractor + IPC contracts) is in progress.
+Phase 0 (scaffolding, governance, CI) is complete. Phase 1 (Dependency Manager Rust IPC backend, sha256 checksum manifest integrity verification, WebKit cache controls, and frontend settings page) is complete. Phase 2 (Media processing workflows & download manager UI integration) is in progress.
+
 
 Features, APIs, and internal architecture may change as the project evolves toward its first public release.
 

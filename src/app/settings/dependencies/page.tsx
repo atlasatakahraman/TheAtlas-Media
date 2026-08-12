@@ -1,8 +1,6 @@
 // next@16.2.9 — verified against node_modules/next/dist/docs/01-app/01-getting-started/02-project-structure.md on 2026-06-21
 "use client";
 
-import Image from "next/image";
-
 import { invoke } from "@tauri-apps/api/core";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -197,13 +195,12 @@ const ToolCard = React.memo(function ToolCard({
 		isInstalled && (info?.source === "managed" || installState?.status === "installed");
 
 	const iconElement = tool.logo ? (
-		<Image
-			src={tool.logo}
+		<img
+			src={typeof tool.logo === "string" ? tool.logo : (tool.logo as { src: string }).src}
 			alt={`${tool.name} logo`}
 			width={20}
 			height={20}
 			className="w-5 h-5 object-contain"
-			unoptimized
 		/>
 	) : Icon ? (
 		<Icon className="w-5 h-5 text-primary" />

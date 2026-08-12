@@ -56,14 +56,16 @@ Always include version guards in code:
 
 **IPC layer:**
 - Batch messages to reduce round-trips
-- `#[tauri::command]` for typed RPC always
-- No synchronous blocking calls
-- Request coalescing for high-frequency events
+- `#[tauri::command]` for typed RPC always (`commands/dependency.rs`, `install.rs`, `update.rs`, `model.rs`)
+- File integrity verification: Download sha256/checksum manifests when downloading dependencies
+- No synchronous blocking calls; report granular download/extraction progress to frontend hooks
+- App storage calculation and WebKit cache clearing commands
 
 **State management:**
-- No `localStorage` — in-memory React state only
-- Server state via Server Components + React Server Functions when possible
-- Client state via `useState`/`useReducer` for interactive UI
+- `next-themes` provider (`src/components/theme-provider.tsx`) & header theme toggle (`theme-toggle.tsx`)
+- In-memory React state & component memoization (`React.memo`, `useCallback`) to prevent cascaded re-renders
+- Custom hooks (`use-dependency.ts`, `use-install.ts`, `use-is-mounted.ts`) for managing dependency state and UI dialogs
+
 
 ### 4. Bug Fix & Hotfix Detection
 

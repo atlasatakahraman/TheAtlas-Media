@@ -25,11 +25,12 @@ TheAtlas Media — cross-platform desktop app for downloading, extracting, and c
 
 ## Architecture
 
-- `src/app/` — Next.js routes. A root-level `app/` must NOT exist — it silently shadows `src/app/`.
-- `src/components/ui/` — shadcn-generated primitives (vendor code; lint-exempted, don't hand-fix style there)
-- `src/layout/` — custom frameless-window shell: `header/`, `sidebar/` (incl. `Appbar.tsx` search-filter, deep-dived in `docs/appbar/logic.md`), `view/`
-- `src/hooks/`, `src/lib/` — window/system env helpers, utils
-- `src-tauri/src/` — `commands/mod.rs` is an empty stub (no IPC commands yet); `lib.rs` only has OS/display-server detection + window positioning so far. `src-tauri/src/mod.rs` looks like an orphaned duplicate not wired into `main.rs` — verify before relying on it.
+- `src/app/` — Next.js routes (`src/app/settings/dependencies/page.tsx` for dependency manager). A root-level `app/` must NOT exist — it silently shadows `src/app/`.
+- `src/components/` — custom & shadcn UI components (`dependency-dialogs.tsx`, `dependency-skeletons.tsx`, `theme-toggle.tsx`, `theme-provider.tsx`). Primitive elements in `src/components/ui/` are vendor code (lint-exempted, don't hand-fix style there).
+- `src/layout/` — custom frameless-window shell: `header/` (with theme switch & loading skeletons), `sidebar/` (incl. `Appbar.tsx` search-filter, deep-dived in `docs/appbar/logic.md`), `view/`
+- `src/hooks/`, `src/lib/` — dependency management hooks (`use-dependency.ts`, `use-install.ts`, `use-is-mounted.ts`), system/window helpers, tool names, types
+- `src-tauri/src/` — `commands/` (`dependency.rs`, `install.rs`, `update.rs`, `model.rs`, `youtube.rs`) houses Tauri IPC commands for dependency discovery, sha256 checksum manifest integrity verification, automated install/uninstall, app storage tracking, webkit cache clearing, and background update checks, all registered in `lib.rs`.
+
 
 ## Hard constraints (enforced by eslint + scripts/*.sh)
 
