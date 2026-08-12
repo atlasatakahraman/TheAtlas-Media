@@ -375,8 +375,6 @@ pub(crate) async fn read_version(path: &Path, tool: Tool) -> Result<String, Stri
 
     #[cfg(windows)]
     {
-        use std::os::windows::process::CommandExt;
-
         const CREATE_NO_WINDOW: u32 = 0x08000000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
@@ -412,6 +410,7 @@ pub(crate) async fn read_version(path: &Path, tool: Tool) -> Result<String, Stri
     parse_version_line(tool, &combined)
 }
 
+#[cfg(target_os = "linux")]
 async fn dir_size_bytes(dir: &Path) -> u64 {
     let mut total_bytes: u64 = 0;
     let mut stack = vec![dir.to_path_buf()];
