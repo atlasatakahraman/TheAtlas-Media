@@ -57,13 +57,20 @@ function isActiveInstall(status: InstallStatus | undefined): boolean {
 
 function installStatusLabel(status: InstallStatus): string {
 	switch (status) {
-		case "checkingManifest": return "Checking manifest";
-		case "downloading": return "Downloading";
-		case "extracting": return "Extracting";
-		case "verifying": return "Verifying";
-		case "installed": return "Installed";
-		case "failed": return "Failed";
-		default: return status;
+		case "checkingManifest":
+			return "Checking manifest";
+		case "downloading":
+			return "Downloading";
+		case "extracting":
+			return "Extracting";
+		case "verifying":
+			return "Verifying";
+		case "installed":
+			return "Installed";
+		case "failed":
+			return "Failed";
+		default:
+			return status;
 	}
 }
 
@@ -207,7 +214,12 @@ const ToolCard = React.memo(function ToolCard({
 	) : null;
 
 	return (
-		<Card className="bg-sidebar border-sidebar-border shadow-xs transition-colors py-0 rounded-2xl">
+		<Card
+			className={cn(
+				"bg-sidebar border-sidebar-border shadow-xs transition-colors py-0 rounded-2xl",
+				!isInstalled && "border-chart-5 border-2",
+			)}
+		>
 			<CardContent className="p-5 space-y-4">
 				{/* ── Header row: icon + name + badges + action buttons ── */}
 				<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -259,102 +271,113 @@ const ToolCard = React.memo(function ToolCard({
 
 					{/* Action Buttons — only shown contextually based on source */}
 					<div className="flex items-center gap-2 shrink-0 sm:self-start">
-						{isInstalling ? (
-							<Button size="sm" variant="ghost" disabled className="gap-1.5 text-xs rounded-md font-medium">
-								<Loader2 className="w-3.5 h-3.5 animate-spin" />
-								Installing…
-							</Button>
-						) : isManaged ? (
-							<>
-								{/* Managed binary — can reinstall/update and uninstall */}
+						{
+							isInstalling ? (
 								<Button
 									size="sm"
 									variant="ghost"
-									disabled={!mounted}
-									onClick={() => onInstallClick(tool.key)}
-									className="group/link h-auto p-0 text-xs text-muted-foreground hover:text-foreground bg-transparent hover:bg-transparent active:bg-transparent focus:bg-transparent focus-visible:bg-transparent shadow-none font-medium rounded-none outline-none ring-0 focus-visible:ring-0"
-								>
-									<span className="inline-flex items-center gap-1.5 border-b border-transparent group-hover/link:border-current pb-[2px] transition-colors">
-										<RefreshCw className="w-3.5 h-3.5 transition-transform duration-500 ease-in-out group-hover/link:rotate-180" />
-										<span>Reinstall / Update</span>
-									</span>
-								</Button>
-								<Button
-									size="sm"
-									variant="destructive"
-									disabled={false}
-									onClick={() => onUninstallClick(tool.key)}
+									disabled
 									className="gap-1.5 text-xs rounded-md font-medium"
 								>
-									<Trash2 className="w-3.5 h-3.5" />
-									Uninstall
+									<Loader2 className="w-3.5 h-3.5 animate-spin" />
+									Installing…
 								</Button>
-							</>
-						) : !isInstalled ? (
-							/* Not installed — show Install */
-							<Button
-								size="sm"
-								variant="default"
-								disabled={!mounted}
-								onClick={() => onInstallClick(tool.key)}
-								className="gap-1.5 text-xs rounded-md font-medium"
-							>
-								<Download className="w-3.5 h-3.5" />
-								Install
-							</Button>
-						) : null /* System-wide path — no action buttons */}
+							) : isManaged ? (
+								<>
+									{/* Managed binary — can reinstall/update and uninstall */}
+									<Button
+										size="sm"
+										variant="ghost"
+										disabled={!mounted}
+										onClick={() => onInstallClick(tool.key)}
+										className="group/link h-auto p-0 text-xs text-muted-foreground hover:text-foreground bg-transparent hover:bg-transparent active:bg-transparent focus:bg-transparent focus-visible:bg-transparent shadow-none font-medium rounded-none outline-none ring-0 focus-visible:ring-0"
+									>
+										<span className="inline-flex items-center gap-1.5 border-b border-transparent group-hover/link:border-current pb-[2px] transition-colors">
+											<RefreshCw className="w-3.5 h-3.5 transition-transform duration-500 ease-in-out group-hover/link:rotate-180" />
+											<span>Reinstall / Update</span>
+										</span>
+									</Button>
+									<Button
+										size="sm"
+										variant="destructive"
+										disabled={false}
+										onClick={() => onUninstallClick(tool.key)}
+										className="gap-1.5 text-xs rounded-md font-medium"
+									>
+										<Trash2 className="w-3.5 h-3.5" />
+										Uninstall
+									</Button>
+								</>
+							) : !isInstalled ? (
+								/* Not installed — show Install */
+								<Button
+									size="sm"
+									variant="default"
+									disabled={!mounted}
+									onClick={() => onInstallClick(tool.key)}
+									className="gap-1.5 text-xs rounded-md font-medium"
+								>
+									<Download className="w-3.5 h-3.5" />
+									Install
+								</Button>
+							) : null /* System-wide path — no action buttons */
+						}
 					</div>
 				</div>
 
 				{/* Progress Panel (when installing) */}
-				{isInstalling && installState && (() => {
-					const isDownloading = installState.status === "downloading";
-					const pct = Math.min(100, Math.max(0, installState.progress));
+				{isInstalling &&
+					installState &&
+					(() => {
+						const isDownloading = installState.status === "downloading";
+						const pct = Math.min(100, Math.max(0, installState.progress));
 
-					return (
-						<div className="rounded-xl border border-sidebar-border/60 bg-sidebar/60 p-3 space-y-2.5">
-							{/* Status + percentage row */}
-							<div className="flex items-center justify-between gap-2 min-w-0">
-								<div className="flex items-center gap-1.5 min-w-0">
-									<Loader2 className="w-3 h-3 animate-spin shrink-0 text-primary" />
-									<span className="text-xs font-medium text-foreground">
-										{installStatusLabel(installState.status as InstallStatus)}
-									</span>
-									{installState.message && !isDownloading && (
-										<span className="text-xs text-muted-foreground truncate">
-											— {installState.message}
+						return (
+							<div className="rounded-xl border border-sidebar-border/60 bg-sidebar/60 p-3 space-y-2.5">
+								{/* Status + percentage row */}
+								<div className="flex items-center justify-between gap-2 min-w-0">
+									<div className="flex items-center gap-1.5 min-w-0">
+										<Loader2 className="w-3 h-3 animate-spin shrink-0 text-primary" />
+										<span className="text-xs font-medium text-foreground">
+											{installStatusLabel(
+												installState.status as InstallStatus,
+											)}
+										</span>
+										{installState.message && !isDownloading && (
+											<span className="text-xs text-muted-foreground truncate">
+												— {installState.message}
+											</span>
+										)}
+									</div>
+									{isDownloading && pct > 0 && (
+										<span className="text-xs font-mono font-semibold text-primary shrink-0 tabular-nums">
+											{pct.toFixed(1)}%
 										</span>
 									)}
 								</div>
-								{isDownloading && pct > 0 && (
-									<span className="text-xs font-mono font-semibold text-primary shrink-0 tabular-nums">
-										{pct.toFixed(1)}%
-									</span>
+
+								{/* Progress bar */}
+								{isDownloading ? (
+									<Progress
+										value={pct}
+										className="h-2 bg-secondary rounded-full"
+									/>
+								) : (
+									/* Indeterminate shimmer for manifest / extract / verify phases */
+									<div className="h-2 rounded-full bg-secondary overflow-hidden">
+										<div className="h-full w-full rounded-full bg-primary/30 animate-pulse" />
+									</div>
+								)}
+
+								{/* Download details: size + speed */}
+								{isDownloading && installState.message && (
+									<p className="text-[11px] font-mono text-muted-foreground leading-none tracking-tight">
+										{installState.message}
+									</p>
 								)}
 							</div>
-
-							{/* Progress bar */}
-							{isDownloading ? (
-								<Progress
-									value={pct}
-									className="h-2 bg-secondary rounded-full"
-								/>
-							) : (
-								/* Indeterminate shimmer for manifest / extract / verify phases */
-								<div className="h-2 rounded-full bg-secondary overflow-hidden">
-									<div className="h-full w-full rounded-full bg-primary/30 animate-pulse" />
-								</div>
-							)}
-
-							{/* Download details: size + speed */}
-							{isDownloading && installState.message && (
-								<p className="text-[11px] font-mono text-muted-foreground leading-none tracking-tight">
-									{installState.message}
-								</p>
-							)}
-						</div>
-					);
-				})()}
+						);
+					})()}
 
 				{/* Failed State Alert */}
 				{installState?.status === "failed" && !isInstalling && (
@@ -363,7 +386,8 @@ const ToolCard = React.memo(function ToolCard({
 						<div className="space-y-0.5 min-w-0 flex-1">
 							<p className="font-medium font-serif">Installation Failed</p>
 							<p className="text-[11px] opacity-90 break-words font-mono">
-								{installState.message || "An unknown error occurred during installation."}
+								{installState.message ||
+									"An unknown error occurred during installation."}
 							</p>
 						</div>
 					</div>
@@ -396,7 +420,9 @@ const ToolCard = React.memo(function ToolCard({
 												<button
 													onClick={() => {
 														navigator.clipboard.writeText(info.sha256!);
-														toast.success(`Copied ${tool.name} SHA-256 checksum`);
+														toast.success(
+															`Copied ${tool.name} SHA-256 checksum`,
+														);
 													}}
 													className="inline-flex items-start gap-1.5 font-mono text-[11px] bg-background/50 px-2 py-0.5 rounded-md border border-sidebar-border/50 text-muted-foreground cursor-pointer hover:bg-background transition-colors break-all text-left max-w-full"
 												>
@@ -404,7 +430,9 @@ const ToolCard = React.memo(function ToolCard({
 													{info.sha256}
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top">Click to copy checksum</TooltipContent>
+											<TooltipContent side="top">
+												Click to copy checksum
+											</TooltipContent>
 										</Tooltip>
 									</MetaRow>
 								)}
@@ -739,9 +767,15 @@ export default function DependenciesPage() {
 				<div className="flex flex-wrap items-center gap-2">
 					{isLinux && (
 						<Button
-							variant={webkitCacheMb !== null && webkitCacheMb > 100 ? "destructive" : "outline"}
+							variant={
+								webkitCacheMb !== null && webkitCacheMb > 100
+									? "destructive"
+									: "outline"
+							}
 							size="sm"
-							disabled={isClearingCache || !(webkitCacheMb !== null && webkitCacheMb > 100)}
+							disabled={
+								isClearingCache || !(webkitCacheMb !== null && webkitCacheMb > 100)
+							}
 							onClick={() => setShowClearCacheConfirm(true)}
 							className="gap-1.5 rounded-md text-xs font-medium"
 						>
