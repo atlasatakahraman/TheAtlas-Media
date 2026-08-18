@@ -15,18 +15,48 @@ import {
 } from "./types";
 
 /**
+ * Last result produced for each index.
+ *
+ * Kept here rather than in a caller-side ref for two reasons: React forbids
+ * reading or writing refs during render, and every consumer of an index wants
+ * the same refinement behaviour anyway. Weak so an index built for a
+ * short-lived list does not pin its result forever.
+ */
+const lastResult = new WeakMap<SearchIndex<unknown>, QueryResult>();
+
+/**
  * Runs the ranking ladder over an index.
  *
- * `prev` enables incremental refinement: when the new query extends the one
- * that produced `prev`, only the previously-matching offsets are rescanned.
- * That is sound because every match kind is substring-containment, and
- * containment is monotone under extending either the query or its last word —
- * an entry that failed a shorter query cannot pass a longer one.
+ * Incremental refinement: when the new query extends the previous one, only the
+ * previously-matching offsets are rescanned. That is sound because every match
+ * kind is substring-containment, and containment is monotone under extending
+ * either the query or its last word — an entry that failed a shorter query
+ * cannot pass a longer one.
+ *
+ * `prev` controls where the previous result comes from:
+ *   - omitted: the last result for this index, remembered automatically;
+ *   - `null`:  force a cold run (used by the verification script);
+ *   - a value: use exactly that.
  */
 export function runQuery<T>(
 	index: SearchIndex<T>,
 	rawQuery: string,
-	prev?: QueryResult
+	prev?: QueryResult | null
+): QueryResult {
+	const previous =
+		prev === null
+			? undefined
+			: (prev ?? lastResult.get(index as SearchIndex<unknown>));
+
+	const result = evaluate(index, rawQuery, previous);
+	lastResult.set(index as SearchIndex<unknown>, result);
+	return result;
+}
+
+function evaluate<T>(
+	index: SearchIndex<T>,
+	rawQuery: string,
+	prev: QueryResult | undefined
 ): QueryResult {
 	const query = fold(rawQuery).trim();
 	const size = index.size;
@@ -131,15 +161,23 @@ function selectCandidates<T>(
 	query: string,
 	prev?: QueryResult
 ): Int32Array {
-	if (prev && prev.query.length > 0 && query.startsWith(prev.query)) {
-		return prev.order;
-	}
+	const refinable =
+		prev !== undefined && prev.query.length > 0 && query.startsWith(prev.query);
 
-	if (query.length >= 2 && query[0] !== " " && query[1] !== " ") {
-		const bucket = index.prefixBuckets.get(query.slice(0, 2));
-		// A missing bucket is a definitive miss, not a fallback to full scan.
-		return bucket ?? EMPTY;
+	const bucketable = query.length >= 2 && query[0] !== " " && query[1] !== " ";
+	// A missing bucket is a definitive miss, not a reason to fall back to a scan.
+	const bucket = bucketable
+		? (index.prefixBuckets.get(query.slice(0, 2)) ?? EMPTY)
+		: null;
+
+	if (refinable && bucket !== null) {
+		// Both are sound supersets, and which one is smaller is not fixed: a
+		// broad one-character previous query can carry far more entries than a
+		// selective bigram bucket, while a long refined query carries far fewer.
+		return prev.order.length <= bucket.length ? prev.order : bucket;
 	}
+	if (refinable) return prev.order;
+	if (bucket !== null) return bucket;
 
 	const all = new Int32Array(index.size);
 	for (let i = 0; i < index.size; i++) all[i] = i;

@@ -15,7 +15,9 @@ const rows: Row[] = [
 
 const idx = buildSearchIndex(rows, (r) => r);
 
-function ids(q: string, prev?: ReturnType<typeof runQuery>) {
+// `null` forces a cold run: runQuery otherwise remembers its last result per
+// index, which is the production path but would make a "cold" baseline warm.
+function ids(q: string, prev: ReturnType<typeof runQuery> | null = null) {
 	const res = runQuery(idx, q, prev);
 	return { res, list: Array.from(res.order).map((o) => idx.ids[o]) };
 }
@@ -95,7 +97,7 @@ for (const c1 of alphabet) {
 			const q = (c1 + c2 + c3).trim();
 			if (!q) continue;
 			checked++;
-			const viaEngine = Array.from(runQuery(idx, q).order).map((o) => idx.ids[o]).sort();
+			const viaEngine = Array.from(runQuery(idx, q, null).order).map((o) => idx.ids[o]).sort();
 			const brute = bruteMatch(q).sort();
 			if (JSON.stringify(viaEngine) !== JSON.stringify(brute)) {
 				mismatches++;
@@ -117,8 +119,8 @@ for (const c1 of alphabet) {
 			const long = (c1 + c2 + c3).trim();
 			if (!short || !long || !long.startsWith(short)) continue;
 			incChecked++;
-			const warm = Array.from(runQuery(idx, long, runQuery(idx, short)).order).map((o) => idx.ids[o]).sort();
-			const cold = Array.from(runQuery(idx, long).order).map((o) => idx.ids[o]).sort();
+			const warm = Array.from(runQuery(idx, long, runQuery(idx, short, null)).order).map((o) => idx.ids[o]).sort();
+			const cold = Array.from(runQuery(idx, long, null).order).map((o) => idx.ids[o]).sort();
 			if (JSON.stringify(warm) !== JSON.stringify(cold)) {
 				incMismatch++;
 				if (incMismatch <= 5) {
@@ -129,6 +131,32 @@ for (const c1 of alphabet) {
 	}
 }
 eq(`incremental refinement lossless over ${incChecked} pairs`, incMismatch, 0);
+
+
+// The production path: no explicit `prev`, so the engine reuses its own last
+// result. Simulates typing a query one character at a time, then deleting back
+// down, and checks every intermediate state against a cold run.
+let autoMismatch = 0;
+let autoChecked = 0;
+for (const target of ["ytdv", "playlist", "goruntu", "youtube audio", "ses", "dependencies", "gorun"]) {
+	const steps: string[] = [];
+	for (let n = 1; n <= target.length; n++) steps.push(target.slice(0, n));
+	for (let n = target.length - 1; n >= 1; n--) steps.push(target.slice(0, n));
+	steps.push("");
+
+	for (const step of steps) {
+		autoChecked++;
+		const auto = Array.from(runQuery(idx, step).order).map((o) => idx.ids[o]).sort();
+		const cold = Array.from(runQuery(idx, step, null).order).map((o) => idx.ids[o]).sort();
+		if (JSON.stringify(auto) !== JSON.stringify(cold)) {
+			autoMismatch++;
+			if (autoMismatch <= 5) {
+				console.log(`  AUTO MISMATCH step="${step}" auto=${JSON.stringify(auto)} cold=${JSON.stringify(cold)}`);
+			}
+		}
+	}
+}
+eq(`auto-cached refinement matches cold over ${autoChecked} typing steps`, autoMismatch, 0);
 
 console.log(fails === 0 ? "\nALL PASS" : `\n${fails} FAILURES`);
 process.exit(fails === 0 ? 0 : 1);

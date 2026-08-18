@@ -10,7 +10,7 @@ import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { GlobalContextMenu } from "@/components/global-context-menu";
-import { GlobalCommandPalette } from "@/components/global-command-palette";
+import CommandPalette from "@/components/custom/command-palette";
 import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 
 export default function AppView({ children }: ViewProps) {
@@ -97,7 +97,7 @@ export default function AppView({ children }: ViewProps) {
 					</SidebarInset>
 				</SidebarProvider>
 			</GlobalContextMenu>
-			<GlobalCommandPalette />
+			<CommandPalette />
 			<Toaster position="bottom-right" />
 		</>
 	);
