@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Download, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { DependencyInstallDialog } from "@/components/dependency-dialogs";
+import DependencyInstallDialog from "@/components/dependencies/dialogs/install";
 import useDependency from "@/hooks/use-dependency";
 import { useInstall, type ToolInstallInfo } from "@/hooks/use-install";
 import { useIsMounted } from "@/hooks/use-is-mounted";

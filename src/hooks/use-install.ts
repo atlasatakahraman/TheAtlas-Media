@@ -1,13 +1,29 @@
 "use client";
 
-import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
-import { dropCandidateCache } from "@/hooks/use-dependency";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { toast } from "sonner";
+import { dropCandidateCache } from "@/hooks/use-dependency";
+import {
+	check_for_updates,
+	get_download_size_mb,
+	install_dependency,
+	install_tools,
+	uninstall_dependency,
+} from "@/lib/dependency-env";
+import { createKeyedResource } from "@/lib/store/create-async-resource";
+import { createStore, useStore } from "@/lib/store/create-store";
 import { formatSizeMb } from "@/lib/utils";
+import { aliasesOf, getTool, TOOLS } from "@/registry/tools";
 
-export type InstallStatus = "idle" | "checkingManifest" | "downloading" | "extracting" | "verifying" | "installed" | "failed";
+export type InstallStatus =
+	| "idle"
+	| "checkingManifest"
+	| "downloading"
+	| "extracting"
+	| "verifying"
+	| "installed"
+	| "failed";
 
 export type InstallProgress = {
 	name: string;
@@ -31,334 +47,305 @@ export type ConfirmTarget = {
 	toolsInfo: ToolInstallInfo[];
 };
 
-// ── Module-level download size cache ─────────────────────────────────────────
-// Avoids redundant IPC round-trips for the same tool across clicks/re-renders.
-const sizeCache = new Map<string, number>();
+// ── Install progress ──────────────────────────────────────────────────────────
+// One module-level store and one event subscription for the whole app. Before
+// this, every `useInstall()` call site opened its own listener and kept its own
+// copy of the progress map, so an install started from the header badge left
+// the dependencies page showing nothing until the first backend event arrived.
 
-function getAliasKeys(name: string): [string, string] {
-	const norm = name === "yt-dlp" ? "ytdlp" : name;
-	const alt = name === "ytdlp" ? "yt-dlp" : name;
-	return [norm, alt];
+const progressStore = createStore<Record<string, InstallProgress>>({});
+
+/** Writes one progress value under every spelling of the tool's name. */
+function writeProgress(name: string, progress: InstallProgress): void {
+	progressStore.set((prev) => {
+		const next = { ...prev };
+		for (const alias of aliasesOf(name)) next[alias] = progress;
+		return next;
+	});
 }
 
-async function getCachedDownloadSize(name: string): Promise<number> {
-	const [k1, k2] = getAliasKeys(name);
-	const cached = sizeCache.get(k1) ?? sizeCache.get(k2);
-	if (cached !== undefined && cached > 0) return cached;
-	try {
-		const sizeMb = await invoke<number>("get_download_size_mb", { name });
-		if (sizeMb > 0) {
-			sizeCache.set(k1, sizeMb);
-			sizeCache.set(k2, sizeMb);
+function writeProgressMany(names: string[], build: (name: string) => InstallProgress): void {
+	progressStore.set((prev) => {
+		const next = { ...prev };
+		for (const name of names) {
+			const progress = build(name);
+			for (const alias of aliasesOf(name)) next[alias] = progress;
 		}
-		return sizeMb;
-	} catch {
-		return 0;
+		return next;
+	});
+}
+
+let listenerStarted = false;
+
+/**
+ * Subscribes to the backend's `install-progress` stream, once per app.
+ *
+ * Started lazily from the first mounted consumer rather than at import: the
+ * static export prerenders these modules in Node, where there is no Tauri host
+ * to listen to.
+ */
+function ensureProgressListener(): void {
+	if (listenerStarted || typeof window === "undefined") return;
+	listenerStarted = true;
+
+	listen<InstallProgress>("install-progress", (event) => {
+		writeProgress(event.payload.name, event.payload);
+	}).catch((error: unknown) => {
+		// Let a later mount retry rather than leaving the app permanently deaf.
+		listenerStarted = false;
+		console.error("Failed to subscribe to install progress", error);
+	});
+}
+
+// ── Download sizes ────────────────────────────────────────────────────────────
+// Keyed by the backend's own spelling, so the resource key is exactly what the
+// command expects and the aliases collapse onto one cache entry.
+
+const downloadSizes = createKeyedResource<number>(
+	"download-size",
+	(name) => get_download_size_mb(name),
+	{ ttl: Number.MAX_SAFE_INTEGER }
+);
+
+function sizeKey(name: string): string {
+	return getTool(name)?.installName ?? name;
+}
+
+/** Cached size, if one has already resolved. Never triggers a fetch. */
+function peekDownloadSize(name: string): number | undefined {
+	const cached = downloadSizes.peek(sizeKey(name));
+	return cached !== undefined && cached > 0 ? cached : undefined;
+}
+
+/** Cached size, fetching if needed. Resolves to 0 when the lookup fails. */
+async function resolveDownloadSize(name: string): Promise<number> {
+	return (await downloadSizes.forKey(sizeKey(name)).read()) ?? 0;
+}
+
+/**
+ * Total bytes actually transferred for a set of tools.
+ *
+ * FFmpeg and FFprobe ship in one archive, so counting both would roughly
+ * double the figure shown to the user. Returns undefined until every size is
+ * known — a partial total reads as authoritative and is worse than a spinner.
+ */
+function computeBundleTotalSize(tools: ToolInstallInfo[]): number | undefined {
+	if (!tools.every((tool) => tool.sizeMb !== undefined && tool.sizeMb > 0)) return undefined;
+
+	let total = 0;
+	let ffmpegBundleCounted = false;
+
+	for (const tool of tools) {
+		if (tool.name === "ffmpeg" || tool.name === "ffprobe") {
+			if (ffmpegBundleCounted) continue;
+			ffmpegBundleCounted = true;
+		}
+		total += tool.sizeMb ?? 0;
+	}
+	return total;
+}
+
+const ALL_INSTALL_NAMES = TOOLS.map((tool) => tool.installName);
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+// Module-level so they keep a stable identity across renders and can be called
+// from outside React.
+
+async function install(name: string): Promise<void> {
+	writeProgress(name, {
+		name,
+		status: "checkingManifest",
+		progress: 0,
+		message: "Starting…",
+	});
+
+	try {
+		await install_dependency(name);
+	} catch (e) {
+		writeProgress(name, { name, status: "failed", progress: 0, message: String(e) });
+		toast.error(`Failed to start installation for ${name}: ${String(e)}`);
 	}
 }
 
+async function installAll(toolNames?: string[]): Promise<void> {
+	const targets = toolNames && toolNames.length > 0 ? toolNames : [...ALL_INSTALL_NAMES];
+
+	writeProgressMany(targets, (name) => ({
+		name,
+		status: "checkingManifest",
+		progress: 0,
+		message: "Starting…",
+	}));
+
+	try {
+		await install_tools(targets);
+	} catch (e) {
+		writeProgressMany(targets, (name) => ({
+			name,
+			status: "failed",
+			progress: 0,
+			message: String(e),
+		}));
+		toast.error(`Failed to start installing tools: ${String(e)}`);
+	}
+}
+
+async function uninstall(name: string): Promise<boolean> {
+	try {
+		await uninstall_dependency(name);
+		// The binary moved; the path picker must re-probe before it is trusted.
+		dropCandidateCache();
+		return true;
+	} catch (e) {
+		toast.error(`Failed to uninstall ${name}: ${String(e)}`);
+		return false;
+	}
+}
+
+/**
+ * Drops a tool's progress entry.
+ *
+ * Without this, a stale "installed" from earlier in the session keeps the card
+ * claiming success after an uninstall — the backend report is the source of
+ * truth and needs the local snapshot out of its way.
+ */
+function clearState(name: string): void {
+	progressStore.set((prev) => {
+		const aliases = aliasesOf(name);
+		if (!aliases.some((alias) => alias in prev)) return prev;
+		const next = { ...prev };
+		for (const alias of aliases) delete next[alias];
+		return next;
+	});
+}
+
+async function checkForUpdates(force: boolean = false): Promise<void> {
+	await check_for_updates(force);
+}
+
 export function useInstall() {
-	const [states, setStates] = useState<Record<string, InstallProgress>>({});
+	const states = useStore(progressStore);
 	const [confirmTarget, setConfirmTarget] = useState<ConfirmTarget | null>(null);
 
-	// Keep a ref so confirmAndInstall always reads the latest target
-	// without needing it in the dependency array (avoids stale closures).
+	useEffect(() => {
+		ensureProgressListener();
+	}, []);
+
+	// Read by `confirmAndInstall` so it never closes over a stale target while
+	// staying out of the callback's dependency array.
 	const confirmTargetRef = useRef<ConfirmTarget | null>(null);
 	useEffect(() => {
 		confirmTargetRef.current = confirmTarget;
 	}, [confirmTarget]);
 
-	useEffect(() => {
-		let unlisten: UnlistenFn | undefined;
-		let cancelled = false;
-
-		async function setup() {
-			unlisten = await listen<InstallProgress>(
-				"install-progress",
-				(event) => {
-					if (cancelled) return;
-					const [k1, k2] = getAliasKeys(event.payload.name);
-
-					setStates((prev) => ({
-						...prev,
-						[k1]: event.payload,
-						[k2]: event.payload,
-					}));
-				},
-			);
-		}
-
-		setup();
-
-		return () => {
-			cancelled = true;
-			unlisten?.();
-		};
-	}, []);
-
-	const install = useCallback(async (name: string) => {
-		const [k1, k2] = getAliasKeys(name);
-		const initialProgress: InstallProgress = {
-			name,
-			status: "checkingManifest",
-			progress: 0,
-			message: "Starting…",
-		};
-
-		setStates((prev) => ({
-			...prev,
-			[k1]: initialProgress,
-			[k2]: initialProgress,
-		}));
-
-		try {
-			await invoke("install_dependency", { name });
-		} catch (e) {
-			const errProgress: InstallProgress = {
-				name,
-				status: "failed",
-				progress: 0,
-				message: String(e),
-			};
-			setStates((prev) => ({
-				...prev,
-				[k1]: errProgress,
-				[k2]: errProgress,
-			}));
-			toast.error(`Failed to start installation for ${name}: ${String(e)}`);
-		}
-	}, []);
-
-	const installAll = useCallback(async (toolNames?: string[]) => {
-		const targetNames =
-			toolNames && toolNames.length > 0 ? toolNames : ["ffmpeg", "ffprobe", "yt-dlp"];
-		setStates((prev) => {
-			const next = { ...prev };
-			for (const t of targetNames) {
-				const [k1, k2] = getAliasKeys(t);
-				const p: InstallProgress = {
-					name: t,
-					status: "checkingManifest",
-					progress: 0,
-					message: "Starting…",
-				};
-				next[k1] = p;
-				next[k2] = p;
-			}
-			return next;
-		});
-
-		try {
-			await invoke("install_tools", { names: targetNames });
-		} catch (e) {
-			setStates((prev) => {
-				const next = { ...prev };
-				for (const t of targetNames) {
-					const [k1, k2] = getAliasKeys(t);
-					const errP: InstallProgress = {
-						name: t,
-						status: "failed",
-						progress: 0,
-						message: String(e),
-					};
-					next[k1] = errP;
-					next[k2] = errP;
-				}
-				return next;
-			});
-			toast.error(`Failed to start installing tools: ${String(e)}`);
-		}
-	}, []);
-
-	// ── Instant-open confirm: single tool ────────────────────────────────
-	// Opens the dialog IMMEDIATELY with sizeMb=undefined, then resolves
-	// the size in the background and patches state.
+	// ── Confirm: single tool ──────────────────────────────────────────────
+	// Opens immediately with whatever size is cached — `undefined` renders a
+	// shimmer — then patches once the lookup lands. Waiting for the size before
+	// opening would put a network round-trip between the click and the dialog.
 	const requestConfirm = useCallback(
 		(
 			name: string,
 			currentVersion?: string | null,
 			targetVersion?: string | null,
-			title?: string,
+			title?: string
 		) => {
-			const cachedSize = sizeCache.get(name);
-			const validSize = cachedSize && cachedSize > 0 ? cachedSize : undefined;
-			const toolInfo: ToolInstallInfo = {
-				name,
-				currentVersion: currentVersion ?? null,
-				targetVersion: targetVersion ?? null,
-				sizeMb: validSize, // instant if cached > 0, undefined if not
-			};
+			const cachedSize = peekDownloadSize(name);
 			const isInstalled = currentVersion && currentVersion !== "Not Installed";
-			const defaultTitle = isInstalled ? `Update ${name}?` : `Install ${name}?`;
-			const target: ConfirmTarget = {
+
+			setConfirmTarget({
 				name,
-				title: title ?? defaultTitle,
-				sizeMb: toolInfo.sizeMb,
+				title: title ?? (isInstalled ? `Update ${name}?` : `Install ${name}?`),
+				sizeMb: cachedSize,
 				isAll: false,
-				toolsInfo: [toolInfo],
-			};
-			setConfirmTarget(target);
+				toolsInfo: [
+					{
+						name,
+						currentVersion: currentVersion ?? null,
+						targetVersion: targetVersion ?? null,
+						sizeMb: cachedSize,
+					},
+				],
+			});
 
-			// Fire-and-forget: resolve size in background, update if dialog is still open
-			if (toolInfo.sizeMb === undefined) {
-				getCachedDownloadSize(name).then((resolvedSize) => {
-					setConfirmTarget((prev) => {
-						if (!prev || prev.name !== name || prev.isAll) return prev;
-						const validResolved = resolvedSize > 0 ? resolvedSize : undefined;
-						return {
-							...prev,
-							sizeMb: validResolved,
-							toolsInfo: prev.toolsInfo.map((t) =>
-								t.name === name ? { ...t, sizeMb: validResolved } : t,
-							),
-						};
-					});
-				});
-			}
-		},
-		[],
-	);
+			if (cachedSize !== undefined) return;
 
-	// Calculate total download size accounting for bundled tools (FFmpeg + FFprobe in 1 archive)
-	const computeBundleTotalSize = (tools: ToolInstallInfo[]): number | undefined => {
-		const allValid = tools.every((t) => t.sizeMb !== undefined && t.sizeMb > 0);
-		if (!allValid) return undefined;
-
-		let total = 0;
-		let ffmpegBundleCounted = false;
-
-		for (const t of tools) {
-			if (t.name === "ffmpeg" || t.name === "ffprobe") {
-				if (!ffmpegBundleCounted) {
-					total += t.sizeMb ?? 0;
-					ffmpegBundleCounted = true;
-				}
-			} else {
-				total += t.sizeMb ?? 0;
-			}
-		}
-		return total;
-	};
-
-	// ── Instant-open confirm: all missing tools ──────────────────────────
-	// Opens dialog immediately with whatever sizes are cached, then
-	// resolves uncached sizes concurrently and patches state.
-	const requestConfirmAll = useCallback((tools: ToolInstallInfo[], title?: string) => {
-		const toolsWithCachedSizes = tools.map((t) => {
-			const cached = sizeCache.get(t.name);
-			return {
-				...t,
-				sizeMb: cached && cached > 0 ? cached : undefined,
-			};
-		});
-
-		const cachedTotal = computeBundleTotalSize(toolsWithCachedSizes);
-
-		const isAnyMissing = toolsWithCachedSizes.some(
-			(t) => !t.currentVersion || t.currentVersion === "Not Installed",
-		);
-		const defaultTitle = isAnyMissing ? "Install All Missing Dependencies" : "Install All Updates";
-		const computedTitle = title ?? defaultTitle;
-
-		const target: ConfirmTarget = {
-			name: computedTitle,
-			title: computedTitle,
-			sizeMb: cachedTotal,
-			isAll: true,
-			toolsInfo: toolsWithCachedSizes,
-		};
-		setConfirmTarget(target);
-
-		// Resolve uncached sizes concurrently in background
-		const uncached = toolsWithCachedSizes.filter((t) => t.sizeMb === undefined);
-		if (uncached.length > 0) {
-			Promise.all(
-				uncached.map(async (t) => ({
-					name: t.name,
-					sizeMb: await getCachedDownloadSize(t.name),
-				})),
-			).then((resolved) => {
-				const resolvedMap = new Map(resolved.map((r) => [r.name, r.sizeMb]));
+			void resolveDownloadSize(name).then((resolved) => {
+				const sizeMb = resolved > 0 ? resolved : undefined;
 				setConfirmTarget((prev) => {
-					if (!prev || !prev.isAll) return prev;
-					const updatedTools = prev.toolsInfo.map((t) => {
-						const resSize = resolvedMap.get(t.name) ?? t.sizeMb;
-						return {
-							...t,
-							sizeMb: resSize && resSize > 0 ? resSize : undefined,
-						};
-					});
-					const totalSize = computeBundleTotalSize(updatedTools);
+					// The dialog may have been closed, or reopened for another
+					// tool, while the lookup was in flight.
+					if (!prev || prev.name !== name || prev.isAll) return prev;
 					return {
 						...prev,
-						sizeMb: totalSize,
-						toolsInfo: updatedTools,
+						sizeMb,
+						toolsInfo: prev.toolsInfo.map((tool) =>
+							tool.name === name ? { ...tool, sizeMb } : tool
+						),
 					};
 				});
 			});
-		}
+		},
+		[]
+	);
+
+	// ── Confirm: several tools at once ────────────────────────────────────
+	const requestConfirmAll = useCallback((tools: ToolInstallInfo[], title?: string) => {
+		const seeded = tools.map((tool) => ({ ...tool, sizeMb: peekDownloadSize(tool.name) }));
+
+		const isAnyMissing = seeded.some(
+			(tool) => !tool.currentVersion || tool.currentVersion === "Not Installed"
+		);
+		const computedTitle =
+			title ?? (isAnyMissing ? "Install All Missing Dependencies" : "Install All Updates");
+
+		setConfirmTarget({
+			name: computedTitle,
+			title: computedTitle,
+			sizeMb: computeBundleTotalSize(seeded),
+			isAll: true,
+			toolsInfo: seeded,
+		});
+
+		const uncached = seeded.filter((tool) => tool.sizeMb === undefined);
+		if (uncached.length === 0) return;
+
+		void Promise.all(
+			uncached.map(async (tool) => [tool.name, await resolveDownloadSize(tool.name)] as const)
+		).then((resolved) => {
+			const resolvedByName = new Map(resolved);
+			setConfirmTarget((prev) => {
+				if (!prev || !prev.isAll) return prev;
+				const updated = prev.toolsInfo.map((tool) => {
+					const size = resolvedByName.get(tool.name) ?? tool.sizeMb;
+					return { ...tool, sizeMb: size && size > 0 ? size : undefined };
+				});
+				return { ...prev, sizeMb: computeBundleTotalSize(updated), toolsInfo: updated };
+			});
+		});
 	}, []);
 
-	const closeConfirm = useCallback(() => {
-		setConfirmTarget(null);
-	}, []);
+	const closeConfirm = useCallback(() => setConfirmTarget(null), []);
 
-	// Use the ref to read the latest target — no stale closure issues
 	const confirmAndInstall = useCallback(async () => {
 		const target = confirmTargetRef.current;
 		if (!target) return;
 		setConfirmTarget(null);
-		if (target.isAll) {
-			await installAll(target.toolsInfo.map((t) => t.name));
-		} else {
-			await install(target.name);
-		}
-	}, [install, installAll]);
+		if (target.isAll) await installAll(target.toolsInfo.map((tool) => tool.name));
+		else await install(target.name);
+	}, []);
 
 	const showUpdateToast = useCallback(
 		async (name: string) => {
-			const sizeMb = await getCachedDownloadSize(name);
-			const sizeStr = sizeMb > 0 ? formatSizeMb(sizeMb) : "calculating size…";
+			const sizeMb = await resolveDownloadSize(name);
 			toast.info(`Update available for ${name}`, {
-				description: `Download size: ${sizeStr}. Click to view details.`,
-				action: {
-					label: "View",
-					onClick: () => requestConfirm(name),
-				},
+				description: `Download size: ${
+					sizeMb > 0 ? formatSizeMb(sizeMb) : "calculating size…"
+				}. Click to view details.`,
+				action: { label: "View", onClick: () => requestConfirm(name) },
 			});
 		},
-		[requestConfirm],
+		[requestConfirm]
 	);
-
-	const checkForUpdates = useCallback(async (force: boolean = false) => {
-		await invoke("check_for_updates", { force });
-	}, []);
-
-	// Clear a tool's stale progress entry (e.g. a leftover "installed" state
-	// from earlier in the session) so the UI falls back to trusting the
-	// backend dependency report instead of a frozen local snapshot.
-	const clearState = useCallback((name: string) => {
-		const [k1, k2] = getAliasKeys(name);
-		setStates((prev) => {
-			if (!(k1 in prev) && !(k2 in prev)) return prev;
-			const next = { ...prev };
-			delete next[k1];
-			delete next[k2];
-			return next;
-		});
-	}, []);
-
-	const uninstall = useCallback(async (name: string): Promise<boolean> => {
-		try {
-			await invoke("uninstall_dependency", { name });
-			// Drop cached candidates so path picker re-probes after uninstall.
-			dropCandidateCache();
-			return true;
-		} catch (e) {
-			toast.error(`Failed to uninstall ${name}: ${String(e)}`);
-			return false;
-		}
-	}, []);
 
 	return {
 		states,

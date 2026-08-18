@@ -18,8 +18,22 @@ export async function install_dependency(name: string): Promise<void> {
 	return await invoke("install_dependency", { name });
 }
 
+export async function install_tools(names: string[]): Promise<void> {
+	return await invoke("install_tools", { names });
+}
+
 export async function install_all_missing(): Promise<void> {
 	return await invoke("install_all_missing");
+}
+
+/** Download size of a tool's release archive, in MB. 0 when unknown. */
+export async function get_download_size_mb(name: string): Promise<number> {
+	return await invoke<number>("get_download_size_mb", { name });
+}
+
+/** Asks the backend to re-check upstream releases. `force` skips its own TTL. */
+export async function check_for_updates(force: boolean): Promise<void> {
+	return await invoke("check_for_updates", { force });
 }
 
 export async function uninstall_dependency(name: string): Promise<void> {
