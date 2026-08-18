@@ -34,14 +34,32 @@ export function replaceTurkishLetters(str: string): string {
 
 export function formatSizeMb(mb: number | null | undefined): string {
 	if (mb === null || mb === undefined || isNaN(mb) || mb < 0) return "Calculating…";
-	if (mb === 0) return "0 MB";
-	if (mb >= 1000) {
-		const gb = mb / 1024;
-		const formattedGb = (Math.floor(gb * 10) / 10).toFixed(1);
-		return `~${formattedGb} GB`;
-	}
-	return `~${mb.toFixed(1)} MB`;
+	if (mb === 0) return "0 B";
+	const bytes = mb * 1024 * 1024;
+	return formatSizeBytes(bytes);
 }
+
+/**
+ * Format a raw byte count using binary units (KiB / MiB / GiB).
+ * Sub-1 KiB values show as "N B"; sub-1 MiB show as "N KiB"; the rest use MiB
+ * or GiB with one decimal place and a leading "~" tilde.
+ */
+export function formatSizeBytes(bytes: number | null | undefined): string {
+	if (bytes === null || bytes === undefined || isNaN(bytes) || bytes < 0) return "Calculating…";
+	if (bytes === 0) return "0 B";
+	const KiB = 1024;
+	const MiB = 1024 * KiB;
+	const GiB = 1024 * MiB;
+	if (bytes < KiB) return `${Math.round(bytes)} B`;
+	if (bytes < MiB) return `~${Math.round(bytes / KiB)} KiB`;
+	if (bytes >= GiB) {
+		const gb = bytes / GiB;
+		return `~${(Math.floor(gb * 10) / 10).toFixed(1)} GiB`;
+	}
+	const mib = bytes / MiB;
+	return `~${(Math.floor(mib * 10) / 10).toFixed(1)} MiB`;
+}
+
 
 const logStyle = (bgColor: string) =>
 	`background-color: ${bgColor}; color: #ffffff; padding: 1px 8px; border-radius: 4px; font-weight: 600; font-family: monospace; font-size: 10px;`;

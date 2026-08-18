@@ -1,5 +1,7 @@
 "use client";
 
+import type { DependencySource } from "./types";
+
 /**
  * Format a dependency tool key into its display name.
  * Shared across Header, dependency-dialogs, and dependencies page.
@@ -10,6 +12,20 @@ export function formatToolName(name: string): string {
 	if (lower === "ffprobe") return "FFprobe";
 	if (lower === "yt-dlp" || lower === "ytdlp") return "yt-dlp";
 	return name;
+}
+
+/**
+ * Format a `DependencySource` into its display label.
+ * Shared across the dependencies page and the "Change Path" picker.
+ */
+export function formatSourceLabel(source: DependencySource): string {
+	switch (source) {
+		case "managed": return "Managed by TheAtlas";
+		case "env": return "Env Override";
+		case "path": return "System / External";
+		case "custom": return "Manually Selected";
+		default: return "Missing";
+	}
 }
 
 /**

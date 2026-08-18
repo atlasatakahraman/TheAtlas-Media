@@ -19,6 +19,11 @@ const nextConfig: NextConfig = {
 	},
 
 	assetPrefix: is_prod ? undefined : `http://${internal_host}:3000`,
+
+	env: {
+		ENABLE_DEBUG: process.env.ENABLE_DEBUG ?? "",
+		NEXT_PUBLIC_ENABLE_DEBUG: process.env.ENABLE_DEBUG ?? "",
+	},
 };
 
 export default nextConfig;

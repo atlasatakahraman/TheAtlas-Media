@@ -202,7 +202,9 @@ const RenderMenuItem = ({
 							!sidebarOpen && "opacity-50"
 						)}
 					>
-						{item.icon && <item.icon className="h-4 w-4" />}
+						{item.icon && (
+							<item.icon className="h-4 w-4 transition-transform duration-200 ease-out group-hover/menu-button:scale-115 group-hover/menu-button:-rotate-6" />
+						)}
 						<span className="flex-1 text-left">
 							<HighlightText text={item.title} query={searchQuery} />
 						</span>
@@ -213,7 +215,7 @@ const RenderMenuItem = ({
 						)}
 						<ChevronRight
 							className={cn(
-								"ml-auto h-4 w-4 transition-transform duration-200",
+								"ml-auto h-4 w-4 transition-transform duration-200 ease-out",
 								isExpanded && "rotate-90"
 							)}
 						/>
@@ -223,10 +225,12 @@ const RenderMenuItem = ({
 						onClick={() => toggleGroup(itemPath)}
 						aria-expanded={isExpanded}
 						aria-controls={`submenu-${itemPath}`}
-						className="justify-between w-full"
+						className="justify-between w-full group/sub-button"
 					>
 						<div className="flex items-center gap-2">
-							{item.icon && <item.icon className="h-4 w-4" />}
+							{item.icon && (
+								<item.icon className="h-4 w-4 transition-transform duration-200 ease-out group-hover/sub-button:scale-115 group-hover/sub-button:-rotate-6" />
+							)}
 							<span>
 								<HighlightText text={item.title} query={searchQuery} />
 							</span>
@@ -238,7 +242,7 @@ const RenderMenuItem = ({
 						</div>
 						<ChevronRight
 							className={cn(
-								"h-4 w-4 transition-transform duration-200",
+								"h-4 w-4 transition-transform duration-200 ease-out",
 								isExpanded && "rotate-90"
 							)}
 						/>
@@ -282,8 +286,10 @@ const RenderMenuItem = ({
 		const MenuComponent = level === 0 ? SidebarMenuButton : SidebarMenuSubButton;
 
 		content = item.url ? (
-			<MenuComponent onClick={() => router.push(item.url!)} className="cursor-pointer">
-				{item.icon && <item.icon className="h-4 w-4" />}
+			<MenuComponent onClick={() => router.push(item.url!)} className="cursor-pointer group/menu-button">
+				{item.icon && (
+					<item.icon className="h-4 w-4 transition-transform duration-200 ease-out group-hover/menu-button:scale-115 group-hover/menu-button:-rotate-6" />
+				)}
 				<span className="flex-1">
 					<HighlightText text={item.title} query={searchQuery} fullMatch={highlightWholeTitle} />
 				</span>
@@ -294,8 +300,10 @@ const RenderMenuItem = ({
 				)}
 			</MenuComponent>
 		) : (
-			<MenuComponent onClick={item.action} className="cursor-pointer">
-				{item.icon && <item.icon className="h-4 w-4" />}
+			<MenuComponent onClick={item.action} className="cursor-pointer group/menu-button">
+				{item.icon && (
+					<item.icon className="h-4 w-4 transition-transform duration-200 ease-out group-hover/menu-button:scale-115 group-hover/menu-button:-rotate-6" />
+				)}
 				<span className="flex-1">
 					<HighlightText text={item.title} query={searchQuery} fullMatch={highlightWholeTitle} />
 				</span>

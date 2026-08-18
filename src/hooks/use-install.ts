@@ -2,8 +2,10 @@
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { dropCandidateCache } from "@/hooks/use-dependency";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { formatSizeMb } from "@/lib/utils";
 
 export type InstallStatus = "idle" | "checkingManifest" | "downloading" | "extracting" | "verifying" | "installed" | "failed";
 
@@ -128,7 +130,8 @@ export function useInstall() {
 	}, []);
 
 	const installAll = useCallback(async (toolNames?: string[]) => {
-		const targetNames = toolNames && toolNames.length > 0 ? toolNames : ["ffmpeg", "yt-dlp"];
+		const targetNames =
+			toolNames && toolNames.length > 0 ? toolNames : ["ffmpeg", "ffprobe", "yt-dlp"];
 		setStates((prev) => {
 			const next = { ...prev };
 			for (const t of targetNames) {
@@ -146,7 +149,7 @@ export function useInstall() {
 		});
 
 		try {
-			await invoke("install_all_missing");
+			await invoke("install_tools", { names: targetNames });
 		} catch (e) {
 			setStates((prev) => {
 				const next = { ...prev };
@@ -163,7 +166,7 @@ export function useInstall() {
 				}
 				return next;
 			});
-			toast.error(`Failed to start installing missing tools: ${String(e)}`);
+			toast.error(`Failed to start installing tools: ${String(e)}`);
 		}
 	}, []);
 
@@ -216,6 +219,27 @@ export function useInstall() {
 		[],
 	);
 
+	// Calculate total download size accounting for bundled tools (FFmpeg + FFprobe in 1 archive)
+	const computeBundleTotalSize = (tools: ToolInstallInfo[]): number | undefined => {
+		const allValid = tools.every((t) => t.sizeMb !== undefined && t.sizeMb > 0);
+		if (!allValid) return undefined;
+
+		let total = 0;
+		let ffmpegBundleCounted = false;
+
+		for (const t of tools) {
+			if (t.name === "ffmpeg" || t.name === "ffprobe") {
+				if (!ffmpegBundleCounted) {
+					total += t.sizeMb ?? 0;
+					ffmpegBundleCounted = true;
+				}
+			} else {
+				total += t.sizeMb ?? 0;
+			}
+		}
+		return total;
+	};
+
 	// ── Instant-open confirm: all missing tools ──────────────────────────
 	// Opens dialog immediately with whatever sizes are cached, then
 	// resolves uncached sizes concurrently and patches state.
@@ -228,10 +252,7 @@ export function useInstall() {
 			};
 		});
 
-		const allValid = toolsWithCachedSizes.every((t) => t.sizeMb !== undefined && t.sizeMb > 0);
-		const cachedTotal = allValid
-			? toolsWithCachedSizes.reduce((sum, t) => sum + (t.sizeMb ?? 0), 0)
-			: undefined;
+		const cachedTotal = computeBundleTotalSize(toolsWithCachedSizes);
 
 		const isAnyMissing = toolsWithCachedSizes.some(
 			(t) => !t.currentVersion || t.currentVersion === "Not Installed",
@@ -267,10 +288,7 @@ export function useInstall() {
 							sizeMb: resSize && resSize > 0 ? resSize : undefined,
 						};
 					});
-					const hasValidSizes = updatedTools.every((t) => t.sizeMb !== undefined && t.sizeMb > 0);
-					const totalSize = hasValidSizes
-						? updatedTools.reduce((sum, t) => sum + (t.sizeMb ?? 0), 0)
-						: undefined;
+					const totalSize = computeBundleTotalSize(updatedTools);
 					return {
 						...prev,
 						sizeMb: totalSize,
@@ -300,7 +318,7 @@ export function useInstall() {
 	const showUpdateToast = useCallback(
 		async (name: string) => {
 			const sizeMb = await getCachedDownloadSize(name);
-			const sizeStr = sizeMb > 0 ? `~${sizeMb.toFixed(1)} MB` : "calculating size…";
+			const sizeStr = sizeMb > 0 ? formatSizeMb(sizeMb) : "calculating size…";
 			toast.info(`Update available for ${name}`, {
 				description: `Download size: ${sizeStr}. Click to view details.`,
 				action: {
@@ -316,8 +334,30 @@ export function useInstall() {
 		await invoke("check_for_updates", { force });
 	}, []);
 
-	const uninstall = useCallback(async (name: string) => {
-		await invoke("uninstall_dependency", { name });
+	// Clear a tool's stale progress entry (e.g. a leftover "installed" state
+	// from earlier in the session) so the UI falls back to trusting the
+	// backend dependency report instead of a frozen local snapshot.
+	const clearState = useCallback((name: string) => {
+		const [k1, k2] = getAliasKeys(name);
+		setStates((prev) => {
+			if (!(k1 in prev) && !(k2 in prev)) return prev;
+			const next = { ...prev };
+			delete next[k1];
+			delete next[k2];
+			return next;
+		});
+	}, []);
+
+	const uninstall = useCallback(async (name: string): Promise<boolean> => {
+		try {
+			await invoke("uninstall_dependency", { name });
+			// Drop cached candidates so path picker re-probes after uninstall.
+			dropCandidateCache();
+			return true;
+		} catch (e) {
+			toast.error(`Failed to uninstall ${name}: ${String(e)}`);
+			return false;
+		}
 	}, []);
 
 	return {
@@ -325,6 +365,7 @@ export function useInstall() {
 		install,
 		installAll,
 		uninstall,
+		clearState,
 		checkForUpdates,
 		confirmTarget,
 		requestConfirm,

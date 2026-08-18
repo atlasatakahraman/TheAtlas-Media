@@ -9,7 +9,7 @@ import { Download, LucideMinus, LucideX, Maximize, Maximize2, Sparkles } from "l
 import { ThemeToggle } from "@/components/theme-toggle";
 
 import { useWindow } from "@/hooks/use-window";
-import { DependencyInfo, DependencyReport, PLATFORM } from "@/lib/types";
+import { DependencyReport, PLATFORM } from "@/lib/types";
 import { useMaximize } from "@/hooks/use-maximize";
 import { getWin } from "@/hooks/get-window";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -33,18 +33,18 @@ function MacOSControls({ onClose, onMinimize, onMaximize }: ControlProps) {
 
 	return (
 		<>
-			<Button onClick={onClose} variant={"ghost"}>
-				<LucideX />
+			<Button onClick={onClose} variant={"ghost"} className="group">
+				<LucideX className="transition-transform duration-200 ease-out group-hover:scale-125 group-hover:rotate-90" />
 			</Button>
-			<Button onClick={onMaximize} variant={"ghost"}>
+			<Button onClick={onMaximize} variant={"ghost"} className="group">
 				{isMaximize ? (
-					<Maximize2 className="w-4 h-4"></Maximize2>
+					<Maximize2 className="w-4 h-4 transition-transform duration-200 ease-out group-hover:scale-125" />
 				) : (
-					<Maximize className="w-4 h-4"></Maximize>
+					<Maximize className="w-4 h-4 transition-transform duration-200 ease-out group-hover:scale-125" />
 				)}
 			</Button>
-			<Button onClick={onMinimize} variant={"ghost"}>
-				<LucideMinus />
+			<Button onClick={onMinimize} variant={"ghost"} className="group">
+				<LucideMinus className="transition-transform duration-200 ease-out group-hover:scale-125" />
 			</Button>
 		</>
 	);
@@ -65,27 +65,27 @@ function DefaultControls({
 	return (
 		<div className="flex *:duration-500 *:animate-in *:slide-in-from-top-9 *:fade-in-0 *:transition-[opacity,transform] *:ease-out">
 			<div>
-				<Button onClick={onMinimize} hidden={!canMinimize} variant={"ghost"}>
-					<LucideMinus />
+				<Button onClick={onMinimize} hidden={!canMinimize} variant={"ghost"} className="group">
+					<LucideMinus className="transition-transform duration-200 ease-out group-hover:scale-125" />
 				</Button>
 			</div>
 			<div>
 				<Button
 					onClick={onMaximize}
-
 					hidden={!canMaximize}
 					variant={"ghost"}
+					className="group"
 				>
 					{isMaximize ? (
-						<Maximize2 className="w-4 h-4"></Maximize2>
+						<Maximize2 className="w-4 h-4 transition-transform duration-200 ease-out group-hover:scale-125" />
 					) : (
-						<Maximize className="w-4 h-4"></Maximize>
+						<Maximize className="w-4 h-4 transition-transform duration-200 ease-out group-hover:scale-125" />
 					)}
 				</Button>
 			</div>
 			<div>
-				<Button onClick={onClose} variant={"ghost"}>
-					<LucideX />
+				<Button onClick={onClose} variant={"ghost"} className="group hover:bg-destructive/15 hover:text-destructive">
+					<LucideX className="transition-transform duration-200 ease-out group-hover:scale-125 group-hover:rotate-90" />
 				</Button>
 			</div>
 		</div>
@@ -99,28 +99,6 @@ type BadgeDetails = {
 	isMissing: boolean;
 	tools: string[];
 };
-
-function normalizeVersion(v: string | null | undefined): string {
-	if (!v) return "";
-	let s = v.trim().toLowerCase();
-	const match =
-		s.match(/(?:ffmpeg|ffprobe|yt-dlp)?\s*version\s+([^\s]+)/i) ||
-		s.match(/^(?:ffmpeg|ffprobe|yt-dlp)\s+([^\s]+)/i);
-	if (match && match[1]) {
-		s = match[1];
-	}
-	s = s.replace(/^v/, "").replace(/^n/, "");
-	return s;
-}
-
-function hasUpdate(info: DependencyInfo): boolean {
-	if (info.status !== "installed") return false;
-	if (!info.version || !info.latestVersion) return false;
-	const current = normalizeVersion(info.version);
-	const latest = normalizeVersion(info.latestVersion);
-	if (!latest || latest === "latest" || latest === "latest release") return false;
-	return current !== latest;
-}
 
 /**
  * Evaluates dependencies in order:
@@ -145,11 +123,26 @@ function getDependencyBadgeDetails(deps: DependencyReport): BadgeDetails {
 		return { show: true, label, actionLabel: "Install", isMissing: true, tools: missing };
 	}
 
-	// Priority 2: Installed dependencies — check for updates
+	// Priority 2: Installed dependencies — check for updates (managed only)
 	const updates: string[] = [];
-	if (deps.ytdlp.status === "installed" && hasUpdate(deps.ytdlp)) updates.push("yt-dlp");
-	if (deps.ffmpeg.status === "installed" && hasUpdate(deps.ffmpeg)) updates.push("FFmpeg");
-	if (deps.ffprobe.status === "installed" && hasUpdate(deps.ffprobe)) updates.push("FFprobe");
+	if (
+		deps.ytdlp.status === "installed" &&
+		deps.ytdlp.source === "managed" &&
+		deps.ytdlp.updateAvailable
+	)
+		updates.push("yt-dlp");
+	if (
+		deps.ffmpeg.status === "installed" &&
+		deps.ffmpeg.source === "managed" &&
+		deps.ffmpeg.updateAvailable
+	)
+		updates.push("FFmpeg");
+	if (
+		deps.ffprobe.status === "installed" &&
+		deps.ffprobe.source === "managed" &&
+		deps.ffprobe.updateAvailable
+	)
+		updates.push("FFprobe");
 
 	if (updates.length > 0) {
 		const label = updates.length === 1 ? `${updates[0]} Update Available` : "Updates Available";
@@ -266,12 +259,12 @@ export default function Header() {
 								variant={badgeDetails.isMissing ? "destructive" : "default"}
 								size="xs"
 								onClick={handleBadgeClick}
-								className="gap-1 rounded-full px-2.5 cursor-pointer select-none shadow-xs duration-500 animate-in slide-in-from-top-9 fade-in-0 transition-[opacity,transform] ease-out"
+								className="gap-1 rounded-full px-2.5 cursor-pointer select-none shadow-xs duration-500 animate-in slide-in-from-top-9 fade-in-0 transition-[opacity,transform] ease-out group"
 							>
 								{badgeDetails.isMissing ? (
-									<Download className="w-3 h-3" />
+									<Download className="w-3 h-3 transition-transform duration-300 ease-out group-hover:scale-125 group-hover:translate-y-0.5" />
 								) : (
-									<Sparkles className="w-3 h-3" />
+									<Sparkles className="w-3 h-3 transition-transform duration-300 ease-out group-hover:scale-125 group-hover:rotate-12" />
 								)}
 								{headerBadgeLabel}
 							</Button>

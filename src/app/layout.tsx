@@ -52,6 +52,13 @@ export default function RootLayout({
 			suppressHydrationWarning={true}
 			className={`${sans.variable} ${sans_italic.variable} ${mono.variable} ${mono_italic.variable} ${serif.variable} ${serif_italic.variable} h-full antialiased`}
 		>
+			<head>
+				<script
+					dangerouslySetInnerHTML={{
+						__html: `(function(){window.addEventListener('contextmenu',function(e){if(!window.__CUSTOM_CONTEXT_MENU_ACTIVE__){e.preventDefault();}},true);})();`,
+					}}
+				/>
+			</head>
 			<body className="min-h-full flex flex-col overflow-hidden">
 				<ThemeProvider
 					attribute="class"

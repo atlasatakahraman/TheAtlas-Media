@@ -45,6 +45,8 @@
 	--color-popover: var(--popover);
 	--color-card-foreground: var(--card-foreground);
 	--color-card: var(--card);
+	--color-debug-foreground: var(--debug-foreground);
+	--color-debug: var(--debug);
 	--radius-sm: calc(var(--radius) * 0.6);
 	--radius-md: calc(var(--radius) * 0.8);
 	--radius-lg: var(--radius);
@@ -55,6 +57,7 @@
 }
 
 :root {
+	color-scheme: light;
 
 	--duration-exit: 150ms;
 	--duration-enter: 210ms;
@@ -90,6 +93,10 @@
 	/* Destructive — palette.error #ba1a1a */
 	--destructive: #ba1a1a;
 
+	/* Debug — nearly red #e03131 */
+	--debug: #e03131;
+	--debug-foreground: #ffffff;
+
 	/* Borders / Input / Ring */
 	--border: #ccc6bb;
 	--input: #ccc6bb;
@@ -114,6 +121,8 @@
 }
 
 .dark {
+	color-scheme: dark;
+
 	/* Core Canvas & Text — warm dark obsidian #242220 and warm cream text #ebe7df from attachments */
 	--background: #242220;
 	--foreground: #ebe7df;
@@ -143,6 +152,10 @@
 	/* Destructive */
 	--destructive: #e55353;
 
+	/* Debug — nearly red #f03e3e */
+	--debug: #f03e3e;
+	--debug-foreground: #ffffff;
+
 	/* Borders / Input / Ring */
 	--border: #3a3834;
 	--input: #3a3834;
@@ -166,9 +179,19 @@
 	--sidebar-ring: #ebe7df;
 }
 
+@utility no-scrollbar {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;
+		scrollbar-width: thin;
+		scrollbar-color: var(--border) transparent;
 	}
 
 	body {
@@ -178,6 +201,53 @@
 	html {
 		@apply font-sans;
 	}
+
+	/* Global WebKit & Chromium custom scrollbars */
+	::-webkit-scrollbar {
+		width: 8px;
+		height: 8px;
+	}
+
+	::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background-color: var(--border);
+		border-radius: 9999px;
+		border: 2px solid transparent;
+		background-clip: content-box;
+		transition: background-color 0.2s ease-out;
+	}
+
+	::-webkit-scrollbar-thumb:hover {
+		background-color: var(--muted-foreground);
+	}
+
+	::-webkit-scrollbar-thumb:active {
+		background-color: var(--primary);
+	}
+
+	::-webkit-scrollbar-button {
+		display: none;
+		width: 0;
+		height: 0;
+	}
+
+	::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+}
+
+/* Sonner Toast smooth GPU animations & exit synchronization */
+[data-sonner-toast] {
+	transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 220ms cubic-bezier(0.16, 1, 0.3, 1), height 220ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+[data-sonner-toast][data-removed="true"] {
+	opacity: 0 !important;
+	transform: scale(0.92) translateY(10px) !important;
+	transition: transform 180ms ease-out, opacity 180ms ease-out !important;
 }
 
 

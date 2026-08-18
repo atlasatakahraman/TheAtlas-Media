@@ -3,7 +3,10 @@ use std::path::Path;
 use tauri::{AppHandle, Emitter};
 use tokio::io::AsyncWriteExt;
 
-use super::dependency::{self, check_tool, managed_bin_dir, read_version, DependencyStatus, Tool};
+use super::dependency::{
+    self, check_tool, invalidate_candidate_cache, managed_bin_dir, read_version, DependencyStatus,
+    Tool,
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -55,9 +58,11 @@ impl Serialize for InstallError {
     }
 }
 
-/// FFmpeg and FFprobe are bundled in the same archive.
+/// Target download and extraction scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) enum DownloadTarget {
+    FFmpeg,
+    FFprobe,
     FfmpegBundle,
     YtDlp,
 }
@@ -66,6 +71,8 @@ impl DownloadTarget {
     /// Human-readable names for progress events.
     fn event_names(self) -> &'static [&'static str] {
         match self {
+            DownloadTarget::FFmpeg => &["ffmpeg"],
+            DownloadTarget::FFprobe => &["ffprobe"],
             DownloadTarget::FfmpegBundle => &["ffmpeg", "ffprobe"],
             DownloadTarget::YtDlp => &["yt-dlp"],
         }
@@ -98,21 +105,26 @@ pub async fn install_dependency(app: AppHandle, name: String) -> Result<(), Inst
     Ok(())
 }
 
-/// Install all missing dependencies concurrently.
+/// Install or update specific tool names.
+/// If both "ffmpeg" and "ffprobe" are in names, bundles them into FfmpegBundle
+/// so the archive is only downloaded once and both are extracted.
 #[tauri::command]
-pub async fn install_all_missing(app: AppHandle) -> Result<(), InstallError> {
-    let report = dependency::check_dependencies(app.clone())
-        .await
-        .map_err(InstallError::DownloadFailed)?;
-
+pub async fn install_tools(app: AppHandle, names: Vec<String>) -> Result<(), InstallError> {
     let mut targets = std::collections::HashSet::new();
 
-    if matches!(report.ffmpeg.status, DependencyStatus::NotInstalled)
-        || matches!(report.ffprobe.status, DependencyStatus::NotInstalled)
-    {
+    let has_ffmpeg = names.iter().any(|n| n == "ffmpeg");
+    let has_ffprobe = names.iter().any(|n| n == "ffprobe");
+    let has_ytdlp = names.iter().any(|n| n == "yt-dlp" || n == "ytdlp");
+
+    if has_ffmpeg && has_ffprobe {
         targets.insert(DownloadTarget::FfmpegBundle);
+    } else if has_ffmpeg {
+        targets.insert(DownloadTarget::FFmpeg);
+    } else if has_ffprobe {
+        targets.insert(DownloadTarget::FFprobe);
     }
-    if matches!(report.ytdlp.status, DependencyStatus::NotInstalled) {
+
+    if has_ytdlp {
         targets.insert(DownloadTarget::YtDlp);
     }
 
@@ -134,6 +146,27 @@ pub async fn install_all_missing(app: AppHandle) -> Result<(), InstallError> {
     Ok(())
 }
 
+/// Install all missing dependencies concurrently.
+#[tauri::command]
+pub async fn install_all_missing(app: AppHandle) -> Result<(), InstallError> {
+    let report = dependency::check_dependencies(app.clone())
+        .await
+        .map_err(InstallError::DownloadFailed)?;
+
+    let mut names = Vec::new();
+    if matches!(report.ffmpeg.status, DependencyStatus::NotInstalled) {
+        names.push("ffmpeg".to_string());
+    }
+    if matches!(report.ffprobe.status, DependencyStatus::NotInstalled) {
+        names.push("ffprobe".to_string());
+    }
+    if matches!(report.ytdlp.status, DependencyStatus::NotInstalled) {
+        names.push("yt-dlp".to_string());
+    }
+
+    install_tools(app, names).await
+}
+
 /// Uninstall a managed dependency by removing its binary files from managed_bin_dir.
 #[tauri::command]
 pub async fn uninstall_dependency(app: AppHandle, name: String) -> Result<(), InstallError> {
@@ -141,6 +174,8 @@ pub async fn uninstall_dependency(app: AppHandle, name: String) -> Result<(), In
     let target = name_to_target(&name)?;
 
     let tools_to_remove: Vec<Tool> = match target {
+        DownloadTarget::FFmpeg => vec![Tool::FFmpeg],
+        DownloadTarget::FFprobe => vec![Tool::FFprobe],
         DownloadTarget::FfmpegBundle => vec![Tool::FFmpeg, Tool::FFprobe],
         DownloadTarget::YtDlp => vec![Tool::YTdlp],
     };
@@ -153,6 +188,10 @@ pub async fn uninstall_dependency(app: AppHandle, name: String) -> Result<(), In
                 .map_err(|e| InstallError::FsError(e.to_string()))?;
         }
     }
+
+    // The managed copy is gone — any cached "Change Path" candidate list
+    // still listing it is now wrong.
+    invalidate_candidate_cache();
 
     Ok(())
 }
@@ -170,16 +209,43 @@ pub(crate) async fn do_install(
         .await
         .map_err(|e| InstallError::FsError(e.to_string()))?;
 
-    match target {
-        DownloadTarget::FfmpegBundle => install_ffmpeg_bundle(app, &bin_dir).await,
+    let result = match target {
+        DownloadTarget::FFmpeg | DownloadTarget::FFprobe | DownloadTarget::FfmpegBundle => {
+            install_ffmpeg(app, &bin_dir, target).await
+        }
         DownloadTarget::YtDlp => install_ytdlp(app, &bin_dir).await,
-    }
+    };
+
+    // A fresh binary (or a new version of one) may have landed in the managed
+    // dir, so the cached candidate probe results no longer describe what's on
+    // disk. Invalidated even on failure — a partial install still writes files.
+    invalidate_candidate_cache();
+
+    result
 }
 
-async fn install_ffmpeg_bundle(app: &AppHandle, bin_dir: &Path) -> Result<(), InstallError> {
+async fn install_ffmpeg(
+    app: &AppHandle,
+    bin_dir: &Path,
+    target: DownloadTarget,
+) -> Result<(), InstallError> {
     let url = ffmpeg_download_url()?;
-    let names = DownloadTarget::FfmpegBundle.event_names();
+    let names = target.event_names();
     let client = make_http_client()?;
+
+    let (tools_to_install, files_to_extract): (Vec<Tool>, Vec<&'static str>) = match target {
+        DownloadTarget::FFmpeg => (vec![Tool::FFmpeg], vec![Tool::FFmpeg.exe_name()]),
+        DownloadTarget::FFprobe => (vec![Tool::FFprobe], vec![Tool::FFprobe.exe_name()]),
+        DownloadTarget::FfmpegBundle => (
+            vec![Tool::FFmpeg, Tool::FFprobe],
+            vec![Tool::FFmpeg.exe_name(), Tool::FFprobe.exe_name()],
+        ),
+        _ => {
+            return Err(InstallError::UnknownDependency(
+                "Invalid target for FFmpeg download".into(),
+            ))
+        }
+    };
 
     // ── Step 1: Fetch SHA-256 manifest ──────────────────────────────────────
     emit_to_names(
@@ -215,17 +281,12 @@ async fn install_ffmpeg_bundle(app: &AppHandle, bin_dir: &Path) -> Result<(), In
         "Extracting binaries…",
     );
 
-    let ffmpeg_exe = Tool::FFmpeg.exe_name();
-    let ffprobe_exe = Tool::FFprobe.exe_name();
-    let files_to_extract = [ffmpeg_exe, ffprobe_exe];
-
     extract_archive(&archive_path, bin_dir, &files_to_extract).await?;
     let _ = tokio::fs::remove_file(&archive_path).await;
 
     #[cfg(unix)]
-    {
-        set_executable(&bin_dir.join(ffmpeg_exe))?;
-        set_executable(&bin_dir.join(ffprobe_exe))?;
+    for tool in &tools_to_install {
+        set_executable(&bin_dir.join(tool.exe_name()))?;
     }
 
     // ── Step 5: Verify binaries run correctly ────────────────────────────────
@@ -237,8 +298,9 @@ async fn install_ffmpeg_bundle(app: &AppHandle, bin_dir: &Path) -> Result<(), In
         "Verifying installed binaries…",
     );
 
-    verify_tool(app, Tool::FFmpeg, bin_dir).await?;
-    verify_tool(app, Tool::FFprobe, bin_dir).await?;
+    for tool in &tools_to_install {
+        verify_tool(app, *tool, bin_dir).await?;
+    }
 
     emit_to_names(
         app,
@@ -593,7 +655,9 @@ fn archive_extension() -> &'static str {
 
 pub(crate) fn name_to_target(name: &str) -> Result<DownloadTarget, InstallError> {
     match name {
-        "ffmpeg" | "ffprobe" => Ok(DownloadTarget::FfmpegBundle),
+        "ffmpeg" => Ok(DownloadTarget::FFmpeg),
+        "ffprobe" => Ok(DownloadTarget::FFprobe),
+        "ffmpeg_bundle" | "ffmpeg-bundle" => Ok(DownloadTarget::FfmpegBundle),
         "yt-dlp" | "ytdlp" => Ok(DownloadTarget::YtDlp),
         other => Err(InstallError::UnknownDependency(other.to_string())),
     }
@@ -635,15 +699,15 @@ fn ytdlp_binary_filename() -> &'static str {
     }
 }
 
-fn ffmpeg_sha256_url() -> Result<&'static str, InstallError> {
+fn ffmpeg_archive_filename() -> &'static str {
     if cfg!(all(target_os = "linux", target_arch = "x86_64")) {
-        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz.sha256")
+        "ffmpeg-master-latest-linux64-gpl.tar.xz"
     } else if cfg!(all(target_os = "linux", target_arch = "aarch64")) {
-        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz.sha256")
+        "ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
     } else if cfg!(all(target_os = "windows", target_arch = "x86_64")) {
-        Ok("https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip.sha256")
+        "ffmpeg-master-latest-win64-gpl.zip"
     } else {
-        Err(InstallError::UnsupportedPlatform)
+        "ffmpeg-master-latest-linux64-gpl.tar.xz"
     }
 }
 
@@ -683,36 +747,42 @@ async fn fetch_ytdlp_expected_sha256(client: &reqwest::Client) -> Result<String,
 }
 
 async fn fetch_ffmpeg_expected_sha256(client: &reqwest::Client) -> Result<String, InstallError> {
-    let sha256_url = ffmpeg_sha256_url()?;
+    const CHECKSUMS_URL: &str =
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/checksums.sha256";
+    let filename = ffmpeg_archive_filename();
 
     let text = client
-        .get(sha256_url)
+        .get(CHECKSUMS_URL)
         .send()
         .await
         .map_err(|e| {
-            InstallError::VerificationFailed(format!("Cannot fetch FFmpeg .sha256 manifest: {e}"))
+            InstallError::VerificationFailed(format!(
+                "Cannot fetch FFmpeg checksums.sha256 manifest: {e}"
+            ))
         })?
         .text()
         .await
         .map_err(|e| {
-            InstallError::VerificationFailed(format!("Cannot read FFmpeg .sha256 manifest: {e}"))
+            InstallError::VerificationFailed(format!(
+                "Cannot read FFmpeg checksums.sha256 manifest: {e}"
+            ))
         })?;
 
-    // BtbN format: "<hash>  <filename>" or just "<hash>"
-    let hash = text
-        .split_whitespace()
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_lowercase();
-
-    if hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()) {
-        Ok(hash)
-    } else {
-        Err(InstallError::VerificationFailed(format!(
-            "Invalid SHA-256 in FFmpeg manifest: '{hash}'"
-        )))
+    for line in text.lines() {
+        // Format: "<hash>  <filename>"
+        if let Some((hash, name)) = line.split_once(' ') {
+            if name.trim() == filename {
+                let hash = hash.trim().to_lowercase();
+                if hash.len() == 64 && hash.chars().all(|c| c.is_ascii_hexdigit()) {
+                    return Ok(hash);
+                }
+            }
+        }
     }
+
+    Err(InstallError::VerificationFailed(format!(
+        "No SHA-256 entry for '{filename}' in FFmpeg checksums.sha256 manifest"
+    )))
 }
 
 async fn verify_download_sha256(dest: &Path, expected: &str) -> Result<(), InstallError> {

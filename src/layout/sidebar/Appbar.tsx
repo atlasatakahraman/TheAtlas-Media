@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Sidebar, SidebarHeader, SidebarContent, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
+import { Sidebar, SidebarHeader, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenuItem, SidebarMenu } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { getSidebarMenuGroups } from "./data";
 import RenderMenuItem from "./render-menu-item";
 import type { MenuItem } from "./types";
 import { useRouter } from "next/navigation";
+import { IS_DEBUG_MODE } from "@/lib/debug-env";
 
 type SearchIndexEntry = {
 	normTitle: string;
@@ -190,6 +191,16 @@ export default function Appbar() {
 					</div>
 				</ScrollArea>
 			</SidebarContent>
+			{IS_DEBUG_MODE && (
+				<SidebarFooter className="bg-secondary border-r border-sidebar-border p-3 flex items-center justify-center">
+					<Badge
+						variant="outline"
+						className="px-2.5 py-1 text-xs font-medium border-debug/40 text-debug bg-debug/10 rounded-full shadow-xs flex items-center justify-center cursor-default select-none group-data-[collapsible=icon]:hidden"
+					>
+						Debug Mode Enabled
+					</Badge>
+				</SidebarFooter>
+			)}
 		</Sidebar>
 	)
 }

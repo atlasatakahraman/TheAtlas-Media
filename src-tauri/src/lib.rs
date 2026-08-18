@@ -86,6 +86,11 @@ async fn set_window_position(window: tauri::WebviewWindow, x: i32, y: i32) -> Re
         .map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn open_devtools(window: tauri::WebviewWindow) {
+    window.open_devtools();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Force disable OpenGL explicit sync on NVIDIA cards (prevents compositor deadlock
@@ -113,12 +118,19 @@ pub fn run() {
             get_display_server,
             set_window_position,
             get_operating_system,
+            open_devtools,
             commands::dependency::check_installed_dependencies,
             commands::dependency::check_dependencies,
             commands::dependency::get_app_storage_size_mb,
+            commands::dependency::get_app_storage_path,
+            commands::dependency::open_app_storage_dir,
+            commands::dependency::reveal_dependency_path,
+            commands::dependency::get_dependency_candidates,
+            commands::dependency::set_dependency_override,
             commands::dependency::get_webkit_cache_size_mb,
             commands::dependency::clear_webkit_cache,
             commands::install::install_dependency,
+            commands::install::install_tools,
             commands::install::install_all_missing,
             commands::install::uninstall_dependency,
             commands::install::get_download_size_mb,

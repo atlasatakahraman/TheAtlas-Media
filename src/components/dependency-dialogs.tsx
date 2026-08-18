@@ -11,10 +11,38 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import type { ConfirmTarget } from "@/hooks/use-install";
-import { formatToolName, getToolDisabledImpact } from "@/lib/tool-names";
-import { formatSizeMb } from "@/lib/utils";
-import { ArrowRight, Check, CheckCircle2, Copy, Download, Package, ShieldAlert, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
+import { set_dependency_override } from "@/lib/dependency-env";
+import { getCachedCandidates, getSyncCachedCandidates, dropCandidateCache } from "@/hooks/use-dependency";
+import { formatSourceLabel, formatToolName, getToolDisabledImpact } from "@/lib/tool-names";
+import type { DependencyCandidate } from "@/lib/types";
+import { cn, formatSizeMb, formatSizeBytes } from "@/lib/utils";
+import { formatVersionDisplay } from "@/lib/version";
+import {
+	AlertTriangle,
+	ArrowRight,
+	Check,
+	CheckCircle2,
+	Copy,
+	Download,
+	Loader2,
+	Package,
+	RotateCcw,
+	Route,
+	ShieldAlert,
+	ShieldCheck,
+	Sparkles,
+	Trash2,
+} from "lucide-react";
 import React from "react";
 
 // ── Inline shimmer skeleton for async-loading size values ─────────────────
@@ -27,26 +55,6 @@ function SizeShimmer() {
 function SizeDisplay({ sizeMb }: { sizeMb: number | undefined }) {
 	if (sizeMb === undefined || sizeMb <= 0) return <SizeShimmer />;
 	return <>{formatSizeMb(sizeMb)}</>;
-}
-
-function formatVersionDisplay(version: string | null | undefined): string {
-	if (!version || version === "Not Installed") return "Not Installed";
-	const lower = version.trim().toLowerCase();
-	if (lower === "latest release" || lower === "latest" || lower === "vlatest") {
-		return "Latest Release";
-	}
-
-	let v = version.trim();
-	const match =
-		v.match(/(?:ffmpeg|ffprobe|yt-dlp)?\s*version\s+([^\s]+)/i) ||
-		v.match(/^(?:ffmpeg|ffprobe|yt-dlp)\s+([^\s]+)/i);
-	if (match && match[1]) {
-		v = match[1];
-	}
-
-	if (v.startsWith("v") || v.startsWith("V")) return v;
-	if (v.startsWith("n")) return `v${v.slice(1)}`;
-	return `v${v}`;
 }
 
 export interface DependencyInstallDialogProps {
@@ -213,10 +221,10 @@ export const ClearWebKitCacheDialog = React.memo(function ClearWebKitCacheDialog
 						<div className="p-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 shadow-2xs">
 							<Trash2 className="w-4 h-4" />
 						</div>
-						<span>Clear WebKit Cache?</span>
+						<span>Clear WebView Cache?</span>
 					</AlertDialogTitle>
 					<AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-						This will permanently delete the application&apos;s WebKit cache stored on disk. The app will rebuild it automatically on next use.
+						This will permanently delete the application&apos;s WebView cache stored on disk (such as shader cache, network cache, and media cache). The app will rebuild it automatically as needed.
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 
@@ -226,10 +234,10 @@ export const ClearWebKitCacheDialog = React.memo(function ClearWebKitCacheDialog
 						<span>Cache to be cleared</span>
 					</div>
 					<div className="flex items-center justify-between pt-0.5">
-						<span>WebKit App Cache</span>
+						<span>App WebView Cache</span>
 						<span className="font-mono font-medium text-foreground">
 							{cacheSizeMb !== null && cacheSizeMb > 0
-								? `~${cacheSizeMb.toFixed(1)} MB`
+								? formatSizeMb(cacheSizeMb)
 								: "—"}
 						</span>
 					</div>
@@ -361,6 +369,224 @@ export const UpToDateDialog = React.memo(function UpToDateDialog({
 				</AlertDialogFooter>
 			</AlertDialogContent>
 		</AlertDialog>
+	);
+});
+
+// ── Change Path picker ──────────────────────────────────────────────────
+// Lets the user pick which detected installation (env override, managed,
+// system PATH) TheAtlas should actually use for a tool. The choice is
+// persisted backend-side and always outranks auto-detection — including an
+// active THEATLAS_*_PATH env override.
+
+export interface DependencyPathDialogProps {
+	/** Tool key ("ffmpeg" | "ffprobe" | "ytdlp") to pick a path for, or null when closed. */
+	toolKey: string | null;
+	/** The currently active resolved path (`DependencyInfo.path`), to mark the active candidate. */
+	currentPath: string | null;
+	onClose: () => void;
+	/** Called after a successful change (including reset-to-automatic) so the caller can recheck. */
+	onChanged: () => void;
+}
+
+export const DependencyPathDialog = React.memo(function DependencyPathDialog({
+	toolKey,
+	currentPath,
+	onClose,
+	onChanged,
+}: DependencyPathDialogProps) {
+	const [candidates, setCandidates] = React.useState<DependencyCandidate[]>(
+		() => (toolKey ? getSyncCachedCandidates(toolKey) ?? [] : []),
+	);
+	const [loadedForKey, setLoadedForKey] = React.useState<string | null>(
+		() => (toolKey && getSyncCachedCandidates(toolKey) ? toolKey : null),
+	);
+	const [pendingPath, setPendingPath] = React.useState<string | null>(null);
+	const [selectedPath, setSelectedPath] = React.useState<string | null>(null);
+	const [error, setError] = React.useState<string | null>(null);
+	const isBusy = pendingPath !== null;
+	// Derived, not tracked state: "loading" just means the fetch for the
+	// currently-open tool hasn't resolved (success or failure) yet.
+	const isLoading = toolKey !== null && loadedForKey !== toolKey;
+
+	// Reset local UI state whenever the dialog switches to a different tool
+	// (or opens). Adjusted during render per React's "you might not need an
+	// effect" guidance instead of inside the effect body below — this bails
+	// out within the same render pass rather than causing an extra commit.
+	const [lastToolKey, setLastToolKey] = React.useState(toolKey);
+	if (toolKey !== lastToolKey) {
+		setLastToolKey(toolKey);
+		setError(null);
+		const syncCandidates = toolKey ? getSyncCachedCandidates(toolKey) : undefined;
+		setCandidates(syncCandidates ?? []);
+		setLoadedForKey(syncCandidates ? toolKey : null);
+		setSelectedPath(null);
+	}
+
+	React.useEffect(() => {
+		if (!toolKey) return;
+		let cancelled = false;
+
+		// Try the module-level candidate cache first (populated by prefetchCandidates
+		// after every refreshDependencies). Falls back to a fresh probe when empty.
+		getCachedCandidates(toolKey)
+			.then((result) => {
+				if (!cancelled) setCandidates(result);
+			})
+			.catch((e) => {
+				if (!cancelled) setError(String(e));
+			})
+			.finally(() => {
+				if (!cancelled) setLoadedForKey(toolKey);
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [toolKey]);
+
+	const applyPath = React.useCallback(
+		async (path: string | null) => {
+			if (!toolKey) return;
+			setPendingPath(path ?? "__auto__");
+			setError(null);
+			try {
+				await set_dependency_override(toolKey, path);
+				// Drop cached candidates: path changed, re-probe on next open.
+				dropCandidateCache();
+				onChanged();
+				onClose();
+			} catch (e) {
+				setError(String(e));
+			} finally {
+				setPendingPath(null);
+			}
+		},
+		[toolKey, onChanged, onClose],
+	);
+
+	return (
+		<Dialog open={!!toolKey} onOpenChange={(open) => !open && !isBusy && onClose()}>
+			<DialogContent className="sm:max-w-lg bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+				<DialogHeader className="space-y-1.5 text-left">
+					<DialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
+						<div className="p-2 rounded-lg bg-secondary text-primary border border-sidebar-border/70 shadow-2xs">
+							<Route className="w-4 h-4" />
+						</div>
+						<span>Change {formatToolName(toolKey ?? "")} Path</span>
+					</DialogTitle>
+					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+						Pick which detected installation TheAtlas should use. Your selection always
+						takes priority over automatic detection.
+					</DialogDescription>
+				</DialogHeader>
+
+				<div className="space-y-2">
+					{isLoading ? (
+						<div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
+							<Loader2 className="w-4 h-4 animate-spin" />
+							Detecting installations…
+						</div>
+					) : candidates.length === 0 ? (
+						<p className="text-xs text-muted-foreground py-3">
+							No other installations were detected.
+						</p>
+					) : (
+						<div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+							{candidates.map((c) => {
+								const isSelected = c.path === selectedPath;
+								const isActive = selectedPath === null && c.path === currentPath;
+								return (
+									<button
+										key={c.path}
+										type="button"
+										disabled={!c.working || isBusy}
+										aria-pressed={isSelected}
+										onClick={() => setSelectedPath(c.path === selectedPath ? null : c.path)}
+										className={cn(
+											"w-full text-left rounded-lg border p-2.5 text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer",
+											isSelected
+												? "border-primary bg-primary/10 ring-1 ring-primary/40"
+												: isActive
+													? "border-primary/40 bg-primary/5"
+													: "border-sidebar-border/60 bg-sidebar/80 hover:bg-sidebar",
+										)}
+									>
+										<div className="flex items-center justify-between gap-2 font-medium text-foreground">
+											<span className="flex items-center gap-1.5">
+												{(isSelected || isActive) && (
+													<CheckCircle2 className="w-3.5 h-3.5 text-chart-1 shrink-0" />
+												)}
+												{formatSourceLabel(c.source)}
+											</span>
+											{c.working ? (
+												<span className="flex items-center gap-2 shrink-0">
+													{c.version && (
+														<span className="text-[11px] font-mono text-muted-foreground">
+															{formatVersionDisplay(c.version)}
+														</span>
+													)}
+													{c.sizeBytes != null && c.sizeBytes > 0 && (
+														<span className="rounded-full bg-primary/10 text-primary border border-primary/20 font-mono text-[10px] px-2 py-0.5 font-medium">
+															{formatSizeBytes(c.sizeBytes)}
+														</span>
+													)}
+												</span>
+											) : (
+												<span className="flex items-center gap-1 text-[10px] text-destructive shrink-0">
+													<AlertTriangle className="w-3 h-3" />
+													Not runnable
+												</span>
+											)}
+										</div>
+										<div className="font-mono text-[11px] text-muted-foreground break-all pt-0.5">
+											{c.path}
+										</div>
+									</button>
+								);
+							})}
+						</div>
+					)}
+
+					{error && (
+						<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 flex items-start gap-2 text-[11px] text-destructive">
+							<AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+							<span className="break-words">{error}</span>
+						</div>
+					)}
+				</div>
+
+				<DialogFooter className="py-3 border-t border-sidebar-border/60 flex items-center justify-between rounded-lg sm:justify-between">
+					<Button
+						size="sm"
+						variant="ghost"
+						disabled={isBusy}
+						onClick={() => applyPath(null)}
+						className="gap-1.5 justify-center items-center text-xs text-muted-foreground hover:text-foreground rounded-lg font-medium"
+					>
+						{pendingPath === "__auto__" ? (
+							<Loader2 className="w-3.5 h-3.5 animate-spin" />
+						) : (
+							<RotateCcw className="w-3.5 h-3.5" />
+						)}
+						Reset to Automatic
+					</Button>
+					<Button
+						size="sm"
+						variant="default"
+						disabled={isBusy || selectedPath === null || selectedPath === currentPath}
+						onClick={() => applyPath(selectedPath)}
+						className="justify-center items-center text-xs rounded-lg font-medium gap-1.5"
+					>
+						{pendingPath !== null && pendingPath !== "__auto__" ? (
+							<Loader2 className="w-3.5 h-3.5 animate-spin" />
+						) : (
+							<Check className="w-3.5 h-3.5" />
+						)}
+						Confirm
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
 	);
 });
 

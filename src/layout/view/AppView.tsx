@@ -9,6 +9,9 @@ import { Logging } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
+import { GlobalContextMenu } from "@/components/global-context-menu";
+import { GlobalCommandPalette } from "@/components/global-command-palette";
+import { useGlobalShortcuts } from "@/hooks/use-global-shortcuts";
 
 export default function AppView({ children }: ViewProps) {
 
@@ -74,16 +77,28 @@ export default function AppView({ children }: ViewProps) {
 		return () => window.removeEventListener("keydown", handleKeyDown)
 	}, [sidebarSearch])
 
+	useGlobalShortcuts();
+
 	return (
-		<SidebarProvider defaultOpen={true} className="h-svh overflow-hidden">
-			<Appbar />
-			<SidebarInset className="h-svh overflow-hidden">
-				<Header></Header>
-				<div key={pathname} className="flex-1 min-w-0 overflow-auto">
-					{children}
-				</div>
-			</SidebarInset>
+		<>
+			<GlobalContextMenu>
+				<SidebarProvider defaultOpen={true} className="h-svh overflow-hidden">
+					<Appbar />
+					<SidebarInset className="h-svh overflow-hidden">
+						<Header></Header>
+						<div
+							id="page-content-container"
+							data-page-content="true"
+							key={pathname}
+							className="flex-1 min-w-0 overflow-auto"
+						>
+							{children}
+						</div>
+					</SidebarInset>
+				</SidebarProvider>
+			</GlobalContextMenu>
+			<GlobalCommandPalette />
 			<Toaster position="bottom-right" />
-		</SidebarProvider>
+		</>
 	);
 }

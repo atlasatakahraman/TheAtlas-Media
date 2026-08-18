@@ -15,7 +15,8 @@
 				"title": "TheAtlas — Media",
 				"resizable": true,
 				"decorations": false,
-				"alwaysOnTop": false
+				"alwaysOnTop": false,
+				"generalAutofillEnabled": false
 			}
 		],
 		"security": {

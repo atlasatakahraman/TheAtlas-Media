@@ -17,7 +17,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
 		<Sonner
 			theme={theme as ToasterProps["theme"]}
 			position="bottom-right"
-			className="toaster group"
+			className="toaster group select-none"
 			icons={{
 				success: <CircleCheckIcon className="size-4" />,
 				info: <InfoIcon className="size-4" />,
@@ -51,15 +51,15 @@ const Toaster = ({ ...props }: ToasterProps) => {
 			}
 			toastOptions={{
 				classNames: {
-					toast: "group toast group-[.toaster]:shadow-lg group-[.toaster]:border-sidebar-border font-sans !rounded-2xl p-4",
-					description: "!text-muted-foreground text-xs font-medium leading-relaxed ",
-					title: "!text-foreground text-sm font-semibold",
+					toast: "group toast group-[.toaster]:shadow-lg group-[.toaster]:border-sidebar-border font-sans !rounded-2xl p-4 select-none",
+					description: "!text-muted-foreground text-xs font-medium leading-relaxed select-none",
+					title: "!text-foreground text-sm font-semibold select-none",
 					actionButton:
-						"!bg-primary !text-primary-foreground font-semibold text-xs !rounded-xl !px-5 !py-5 hover:!bg-primary/90 active:!bg-primary/95 shadow-xs shrink-0 inline-flex items-center justify-center min-w-20",
+						"!bg-primary !text-primary-foreground font-semibold text-xs !rounded-xl !px-5 !py-5 hover:!bg-primary/90 active:!bg-primary/95 shadow-xs shrink-0 inline-flex items-center justify-center min-w-20 select-none",
 					cancelButton:
-						"!bg-background !text-foreground font-medium text-xs !rounded-lg border !border-sidebar-border hover:!bg-secondary active:!bg-secondary/80",
+						"!bg-background !text-foreground font-medium text-xs !rounded-lg border !border-sidebar-border hover:!bg-secondary active:!bg-secondary/80 select-none",
 					closeButton:
-						"!bg-background !text-muted-foreground !border-sidebar-border hover:!bg-secondary hover:!text-foreground",
+						"!bg-background !text-muted-foreground !border-sidebar-border hover:!bg-secondary hover:!text-foreground select-none",
 					success: "[&>[data-icon]]:!text-chart-1",
 					error: "[&>[data-icon]]:!text-destructive",
 					warning: "[&>[data-icon]]:!text-chart-3",
