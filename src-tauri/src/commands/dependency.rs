@@ -426,6 +426,14 @@ pub async fn set_dependency_override(
     Ok(check_tool(&app, tool).await)
 }
 
+/// Manually re-check all dependency paths across the system from scratch,
+/// invalidating candidate, version, and SHA-256 caches.
+#[tauri::command]
+pub async fn check_dependency_paths(app: AppHandle) -> Result<DependencyReport, String> {
+    invalidate_candidate_cache();
+    check_dependencies(app).await
+}
+
 #[tauri::command]
 pub async fn check_installed_dependencies(app: AppHandle) -> Result<DependencyStatus, String> {
     let report = check_dependencies(app).await?;

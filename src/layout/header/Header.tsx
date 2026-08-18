@@ -262,9 +262,9 @@ export default function Header() {
 								className="gap-1 rounded-full px-2.5 cursor-pointer select-none shadow-xs duration-500 animate-in slide-in-from-top-9 fade-in-0 transition-[opacity,transform] ease-out group"
 							>
 								{badgeDetails.isMissing ? (
-									<Download className="w-3 h-3 transition-transform duration-300 ease-out group-hover:scale-125 group-hover:translate-y-0.5" />
+									<Download className="w-3 h-3 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:translate-y-[1px]" />
 								) : (
-									<Sparkles className="w-3 h-3 transition-transform duration-300 ease-out group-hover:scale-125 group-hover:rotate-12" />
+									<Sparkles className="w-3 h-3 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:rotate-6" />
 								)}
 								{headerBadgeLabel}
 							</Button>

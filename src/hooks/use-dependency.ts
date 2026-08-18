@@ -1,6 +1,6 @@
 "use client";
 
-import { get_dependencies, get_dependency_candidates } from "@/lib/dependency-env";
+import { check_dependency_paths, get_dependencies, get_dependency_candidates } from "@/lib/dependency-env";
 import { DependencyCandidate, DependencyReport } from "@/lib/types";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -110,14 +110,31 @@ export function refreshDependencies(): Promise<DependencyReport | null> {
 	return inflight;
 }
 
+/**
+ * Drops all cached candidates and re-checks dependency paths across the
+ * system from scratch.
+ */
+export async function checkDependencyPaths(): Promise<DependencyReport | null> {
+	dropCandidateCache();
+	try {
+		cachedReport = await check_dependency_paths();
+		notifyListeners();
+		prefetchCandidates();
+	} catch (e) {
+		console.error("Failed to check dependency paths", e);
+		return await refreshDependencies();
+	}
+	return cachedReport;
+}
+
 // Initial app startup check (runs once on client load)
 if (typeof window !== "undefined") {
 	refreshDependencies();
 }
 
-
 export type DependencyHookResult = DependencyCurrentState & {
 	recheck: () => Promise<DependencyReport | null>;
+	checkPaths: () => Promise<DependencyReport | null>;
 };
 
 export default function useDependency(): DependencyHookResult {
@@ -150,12 +167,16 @@ export default function useDependency(): DependencyHookResult {
 		return await refreshDependencies();
 	}, []);
 
+	const checkPaths = useCallback(async (): Promise<DependencyReport | null> => {
+		return await checkDependencyPaths();
+	}, []);
+
 	// Stabilize the return identity: only produces a new object when
-	// the actual state reference or recheck function changes.
+	// the actual state reference or recheck/checkPaths function changes.
 	// Previously `{ ...state, recheck }` created a fresh object every render,
 	// forcing all consumers to re-render even when nothing changed.
 	return useMemo<DependencyHookResult>(
-		() => ({ ...state, recheck }),
-		[state, recheck],
+		() => ({ ...state, recheck, checkPaths }),
+		[state, recheck, checkPaths],
 	);
 }

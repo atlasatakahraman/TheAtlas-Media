@@ -6,6 +6,10 @@ export async function get_dependencies(): Promise<DependencyReport> {
 	return await invoke<DependencyReport>("check_dependencies");
 }
 
+export async function check_dependency_paths(): Promise<DependencyReport> {
+	return await invoke<DependencyReport>("check_dependency_paths");
+}
+
 export async function get_ffmpeg_path(): Promise<string | null> {
 	return (await get_dependencies()).ffmpeg.path;
 }

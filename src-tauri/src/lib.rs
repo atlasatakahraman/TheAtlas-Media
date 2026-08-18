@@ -121,6 +121,7 @@ pub fn run() {
             open_devtools,
             commands::dependency::check_installed_dependencies,
             commands::dependency::check_dependencies,
+            commands::dependency::check_dependency_paths,
             commands::dependency::get_app_storage_size_mb,
             commands::dependency::get_app_storage_path,
             commands::dependency::open_app_storage_dir,

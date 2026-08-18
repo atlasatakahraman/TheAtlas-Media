@@ -11,6 +11,7 @@ import {
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -19,13 +20,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { dropCandidateCache, getCachedCandidates, getSyncCachedCandidates } from "@/hooks/use-dependency";
 import type { ConfirmTarget } from "@/hooks/use-install";
-import { set_dependency_override } from "@/lib/dependency-env";
-import { getCachedCandidates, getSyncCachedCandidates, dropCandidateCache } from "@/hooks/use-dependency";
+import { get_dependency_candidates, set_dependency_override } from "@/lib/dependency-env";
 import { formatSourceLabel, formatToolName, getToolDisabledImpact } from "@/lib/tool-names";
 import type { DependencyCandidate } from "@/lib/types";
-import { cn, formatSizeMb, formatSizeBytes } from "@/lib/utils";
+import { cn, formatSizeBytes, formatSizeMb } from "@/lib/utils";
 import { formatVersionDisplay } from "@/lib/version";
 import {
 	AlertTriangle,
@@ -36,6 +36,7 @@ import {
 	Download,
 	Loader2,
 	Package,
+	RefreshCw,
 	RotateCcw,
 	Route,
 	ShieldAlert,
@@ -70,7 +71,7 @@ export const DependencyInstallDialog = React.memo(function DependencyInstallDial
 }: DependencyInstallDialogProps) {
 	return (
 		<AlertDialog open={!!confirmTarget} onOpenChange={(open) => !open && onClose()}>
-			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+			<AlertDialogContent className="sm:max-w-xl bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6  space-y-4">
 				<AlertDialogHeader className="space-y-1.5 text-left">
 					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
 						<div className="p-2 rounded-lg bg-secondary text-primary border border-sidebar-border/70 shadow-2xs">
@@ -92,24 +93,27 @@ export const DependencyInstallDialog = React.memo(function DependencyInstallDial
 					{confirmTarget?.toolsInfo?.map((tool) => (
 						<div
 							key={tool.name}
-							className="flex w-full items-center justify-between gap-2.5 rounded-lg border border-sidebar-border/60 bg-sidebar/80 p-2.5 text-left text-xs text-foreground transition-colors hover:bg-sidebar"
+							className="w-full rounded-lg border border-sidebar-border/60 bg-sidebar/80 p-2.5 space-y-1.5 text-left text-xs text-foreground transition-colors hover:bg-sidebar"
 						>
-							<div className="space-y-0.5 text-left">
-								<div className="flex items-center gap-2 font-medium">
+							<div className="flex items-center justify-between gap-2 text-foreground font-medium">
+								<div className="flex items-center gap-2">
 									<Package className="w-4 h-4 text-primary shrink-0" />
 									<span>{formatToolName(tool.name)}</span>
 								</div>
-								<div className="text-[11px] text-muted-foreground flex items-center gap-1.5 pl-6 font-mono">
-									<span>{formatVersionDisplay(tool.currentVersion)}</span>
-									<ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
-									<span className="font-medium text-foreground">
-										{formatVersionDisplay(tool.targetVersion)}
-									</span>
-								</div>
+								<span className="rounded-full bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] px-2.5 py-0.5 shrink-0 font-medium shadow-2xs">
+									<SizeDisplay sizeMb={tool.sizeMb} />
+								</span>
 							</div>
-							<span className="rounded-full bg-primary/10 text-primary border border-primary/20 font-mono text-[11px] px-2.5 py-0.5 shrink-0 font-medium shadow-2xs">
-								<SizeDisplay sizeMb={tool.sizeMb} />
-							</span>
+
+							<div className="flex items-center gap-2 pl-6 font-mono text-[11px] text-muted-foreground flex-wrap">
+								<span>
+									{formatVersionDisplay(tool.currentVersion)}
+								</span>
+								<ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
+								<span className="font-medium text-foreground">
+									{formatVersionDisplay(tool.targetVersion)}
+								</span>
+							</div>
 						</div>
 					))}
 
@@ -127,7 +131,7 @@ export const DependencyInstallDialog = React.memo(function DependencyInstallDial
 					</div>
 				</div>
 
-				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
+				<AlertDialogFooter className="pt-4 -mb-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
 					<AlertDialogCancel onClick={onClose}>
 						Cancel
 					</AlertDialogCancel>
@@ -159,7 +163,7 @@ export const DependencyUninstallDialog = React.memo(function DependencyUninstall
 
 	return (
 		<AlertDialog open={!!targetTool} onOpenChange={(open) => !open && onClose()}>
-			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+			<AlertDialogContent className="sm:max-w-lg bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
 				<AlertDialogHeader className="space-y-1.5 text-left">
 					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
 						<div className="p-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 shadow-2xs">
@@ -183,7 +187,7 @@ export const DependencyUninstallDialog = React.memo(function DependencyUninstall
 					</p>
 				</div>
 
-				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
+				<AlertDialogFooter className="pt-4 -mb-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
 					<AlertDialogCancel onClick={onClose}>
 						Cancel
 					</AlertDialogCancel>
@@ -215,7 +219,7 @@ export const ClearWebKitCacheDialog = React.memo(function ClearWebKitCacheDialog
 }: ClearWebKitCacheDialogProps) {
 	return (
 		<AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+			<AlertDialogContent className="sm:max-w-lg bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
 				<AlertDialogHeader className="space-y-1.5 text-left">
 					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
 						<div className="p-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20 shadow-2xs">
@@ -246,7 +250,7 @@ export const ClearWebKitCacheDialog = React.memo(function ClearWebKitCacheDialog
 					</p>
 				</div>
 
-				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
+				<AlertDialogFooter className="pt-4 -mb-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
 					<AlertDialogCancel onClick={onClose}>Cancel</AlertDialogCancel>
 					<AlertDialogAction
 						onClick={onConfirm}
@@ -289,7 +293,7 @@ export const UpToDateDialog = React.memo(function UpToDateDialog({
 
 	return (
 		<AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<AlertDialogContent className="sm:max-w-md bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
+			<AlertDialogContent className="sm:max-w-lg bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
 				<AlertDialogHeader className="space-y-1.5 text-left">
 					<AlertDialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
 						<div className="p-2 rounded-lg bg-chart-1/10 text-chart-1 border border-chart-1/20 shadow-2xs">
@@ -359,7 +363,7 @@ export const UpToDateDialog = React.memo(function UpToDateDialog({
 					)}
 				</div>
 
-				<AlertDialogFooter className="pt-2 border-t border-sidebar-border/60 flex items-center justify-end">
+				<AlertDialogFooter className="pt-4 -mb-2 border-t border-sidebar-border/60 flex items-center justify-end">
 					<AlertDialogAction
 						onClick={onClose}
 						className="rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary/95 px-5 py-2 text-xs font-medium gap-1.5 shadow-xs"
@@ -464,10 +468,24 @@ export const DependencyPathDialog = React.memo(function DependencyPathDialog({
 		[toolKey, onChanged, onClose],
 	);
 
+	const handleRescan = React.useCallback(async () => {
+		if (!toolKey || isBusy) return;
+		setLoadedForKey(null);
+		setError(null);
+		try {
+			const fresh = await get_dependency_candidates(toolKey, true);
+			setCandidates(fresh);
+		} catch (e) {
+			setError(String(e));
+		} finally {
+			setLoadedForKey(toolKey);
+		}
+	}, [toolKey, isBusy]);
+
 	return (
 		<Dialog open={!!toolKey} onOpenChange={(open) => !open && !isBusy && onClose()}>
 			<DialogContent className="sm:max-w-lg bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4">
-				<DialogHeader className="space-y-1.5 text-left">
+				<DialogHeader className="space-y-1.5 text-left pr-6">
 					<DialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
 						<div className="p-2 rounded-lg bg-secondary text-primary border border-sidebar-border/70 shadow-2xs">
 							<Route className="w-4 h-4" />
@@ -481,6 +499,29 @@ export const DependencyPathDialog = React.memo(function DependencyPathDialog({
 				</DialogHeader>
 
 				<div className="space-y-2">
+					<div className="flex items-center justify-between gap-2 pt-0.5">
+						<span className="text-xs font-medium text-muted-foreground">
+							Detected Installations
+						</span>
+						<Button
+							type="button"
+							size="xs"
+							variant="ghost"
+							disabled={isLoading || isBusy}
+							onClick={handleRescan}
+							className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 group/rescan cursor-pointer rounded-md"
+							title="Re-scan system for installations"
+						>
+							<RefreshCw
+								className={cn(
+									"w-3 h-3 transition-transform duration-500 ease-in-out group-hover/rescan:rotate-180",
+									isLoading && "animate-spin",
+								)}
+							/>
+							<span>Rescan</span>
+						</Button>
+					</div>
+
 					{isLoading ? (
 						<div className="flex items-center justify-center gap-2 py-6 text-xs text-muted-foreground">
 							<Loader2 className="w-4 h-4 animate-spin" />

@@ -332,7 +332,7 @@ const ToolCard = React.memo(function ToolCard({
 								onClick={() => onInstallClick(tool.key)}
 								className="gap-1.5 text-xs rounded-md font-medium group"
 							>
-								<Download className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover:scale-115 group-hover:translate-y-0.5" />
+								<Download className="w-3.5 h-3.5 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:translate-y-[1px]" />
 								Install
 							</Button>
 						) : isShadowingManaged ? (
@@ -361,7 +361,7 @@ const ToolCard = React.memo(function ToolCard({
 								onClick={() => onInstallManagedClick(tool.key)}
 								className="gap-1.5 text-xs rounded-md font-medium group"
 							>
-								<Download className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover:scale-115 group-hover:translate-y-0.5" />
+								<Download className="w-3.5 h-3.5 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:translate-y-[1px]" />
 								Install Managed Copy
 							</Button>
 						) : null}
@@ -519,14 +519,14 @@ const ToolCard = React.memo(function ToolCard({
 												N/A
 											</span>
 										)}
-										{info.managedPath && (
+										{info.path && (
 											<Tooltip>
 												<TooltipTrigger asChild>
 													<button
 														onClick={() => onChangePathClick(tool.key)}
-														className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-md border border-sidebar-border/50 text-primary hover:bg-background transition-colors cursor-pointer shrink-0"
+														className="inline-flex items-center gap-1 font-mono text-[11px] px-2 py-0.5 rounded-md border border-sidebar-border/50 text-primary hover:bg-background transition-colors cursor-pointer shrink-0 group/change-btn"
 													>
-														<Route className="w-3 h-3" />
+														<Route className="w-3 h-3 transition-transform duration-200 ease-out group-hover/change-btn:scale-115" />
 														Change
 													</button>
 												</TooltipTrigger>
@@ -809,6 +809,40 @@ export default function DependenciesPage() {
 		return items;
 	}, [dependencies]);
 
+	const unmanagedToolInfos = useMemo<ToolInstallInfo[]>(() => {
+		if (dependencies.status === "loading") return [];
+		const { ytdlp, ffmpeg, ffprobe } = dependencies.deps;
+		const items: ToolInstallInfo[] = [];
+		if (!ytdlp.managedInstalled) {
+			items.push({
+				name: "yt-dlp",
+				currentVersion: ytdlp.managedVersion ?? ytdlp.version ?? "Not Installed",
+				targetVersion: ytdlp.latestVersion ?? "Latest Release",
+			});
+		}
+		if (!ffmpeg.managedInstalled) {
+			items.push({
+				name: "ffmpeg",
+				currentVersion: ffmpeg.managedVersion ?? ffmpeg.version ?? "Not Installed",
+				targetVersion: ffmpeg.latestVersion ?? "Latest Release",
+			});
+		}
+		if (!ffprobe.managedInstalled) {
+			items.push({
+				name: "ffprobe",
+				currentVersion: ffprobe.managedVersion ?? ffprobe.version ?? "Not Installed",
+				targetVersion: ffprobe.latestVersion ?? "Latest Release",
+			});
+		}
+		return items;
+	}, [dependencies]);
+
+	const allManagedInstalled = useMemo(() => {
+		if (dependencies.status === "loading") return false;
+		const { ytdlp, ffmpeg, ffprobe } = dependencies.deps;
+		return Boolean(ytdlp.managedInstalled && ffmpeg.managedInstalled && ffprobe.managedInstalled);
+	}, [dependencies]);
+
 	const hasMissing = useMemo(() => {
 		if (dependencies.status === "loading") return false;
 		return !dependencies.deps.allInstalled;
@@ -831,6 +865,7 @@ export default function DependenciesPage() {
 	}, [depMap]);
 
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+	const [isCheckingPaths, setIsCheckingPaths] = useState(false);
 	const [uninstallingKeys, setUninstallingKeys] = useState<Set<string>>(new Set());
 	const [revealingPaths, setRevealingPaths] = useState<Set<string>>(new Set());
 
@@ -838,31 +873,48 @@ export default function DependenciesPage() {
 		return Object.values(installStates).some((s) => isActiveInstall(s?.status));
 	}, [installStates]);
 
-	const handleInstallAllClick = useCallback(() => {
-		if (isCheckingUpdates) {
-			toast.warning("Update check is currently in progress. Please wait until it completes.");
+	const handleInstallAllManagedClick = useCallback(() => {
+		if (isCheckingUpdates || isCheckingPaths) {
+			toast.warning("Check is currently in progress. Please wait until it completes.");
 			return;
 		}
-		if (missingToolInfos.length > 0) {
-			requestConfirmAll(missingToolInfos, "Install All Missing Dependencies");
-		}
-	}, [isCheckingUpdates, missingToolInfos, requestConfirmAll]);
 
-	const depMapRef = useRef(depMap);
-	useEffect(() => {
-		depMapRef.current = depMap;
-	}, [depMap]);
+		const allManagedTools: ToolInstallInfo[] = [
+			{
+				name: "yt-dlp",
+				currentVersion: depMap.ytdlp?.managedVersion ?? depMap.ytdlp?.version ?? "Not Installed",
+				targetVersion: depMap.ytdlp?.latestVersion ?? "Latest Release",
+			},
+			{
+				name: "ffmpeg",
+				currentVersion: depMap.ffmpeg?.managedVersion ?? depMap.ffmpeg?.version ?? "Not Installed",
+				targetVersion: depMap.ffmpeg?.latestVersion ?? "Latest Release",
+			},
+			{
+				name: "ffprobe",
+				currentVersion: depMap.ffprobe?.managedVersion ?? depMap.ffprobe?.version ?? "Not Installed",
+				targetVersion: depMap.ffprobe?.latestVersion ?? "Latest Release",
+			},
+		];
+
+		const toolsToInstall = unmanagedToolInfos.length > 0 ? unmanagedToolInfos : allManagedTools;
+		const title = unmanagedToolInfos.length > 0
+			? "Install Managed Dependencies"
+			: "Reinstall All Managed Dependencies";
+
+		requestConfirmAll(toolsToInstall, title);
+	}, [depMap, isCheckingPaths, isCheckingUpdates, requestConfirmAll, unmanagedToolInfos]);
 
 	const handleRequestSingleConfirm = useCallback(
 		(key: string) => {
-			const info = depMapRef.current[key];
+			const info = depMap[key];
 			requestConfirm(
 				key,
 				info?.version ?? "Not Installed",
 				info?.latestVersion ?? "Latest Release",
 			);
 		},
-		[requestConfirm],
+		[depMap, requestConfirm],
 	);
 
 	// External (env/PATH) install — offer a managed copy alongside it rather
@@ -973,6 +1025,31 @@ export default function DependenciesPage() {
 		}
 	}, [checkForUpdates, dependencies, requestConfirmAll]);
 
+	const handleCheckPaths = useCallback(async () => {
+		if (isCheckingPaths || isAnyInstalling) return;
+		setIsCheckingPaths(true);
+		try {
+			const report = await dependencies.checkPaths();
+			updateStorageSize();
+			if (report) {
+				const installedCount = [report.ffmpeg, report.ffprobe, report.ytdlp].filter(
+					(d) => d.status === "installed",
+				).length;
+				if (report.allInstalled) {
+					toast.success("All dependency paths checked and verified (3/3 installed)");
+				} else {
+					toast.info(
+						`Dependency paths checked (${installedCount}/3 installed, ${3 - installedCount} missing)`,
+					);
+				}
+			}
+		} catch (e) {
+			toast.error("Failed to check dependency paths: " + String(e));
+		} finally {
+			setIsCheckingPaths(false);
+		}
+	}, [dependencies, isAnyInstalling, isCheckingPaths, updateStorageSize]);
+
 	const handleUninstallConfirm = useCallback(async () => {
 		if (!uninstallTarget) return;
 		const name = uninstallTarget;
@@ -1045,7 +1122,22 @@ export default function DependenciesPage() {
 					<Button
 						variant="outline"
 						size="sm"
-						disabled={isCheckingUpdates || isAnyInstalling}
+						disabled={isCheckingPaths || isCheckingUpdates || isAnyInstalling}
+						onClick={handleCheckPaths}
+						title="Manually re-scan all dependency paths across the system"
+						className="gap-1.5 border-border rounded-md text-xs font-medium group/check-paths"
+					>
+						{isCheckingPaths ? (
+							<Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+						) : (
+							<Route className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover/check-paths:scale-115" />
+						)}
+						Check Paths
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={isCheckingPaths || isCheckingUpdates || isAnyInstalling}
 						onClick={handleCheckUpdates}
 						className="gap-1.5 border-border rounded-md text-xs font-medium"
 					>
@@ -1058,19 +1150,20 @@ export default function DependenciesPage() {
 					</Button>
 					<Button
 						size="sm"
-						disabled={!mounted || isLoading || !hasMissing || isAnyInstalling}
-						onClick={handleInstallAllClick}
-						className="gap-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium"
+						disabled={!mounted || isLoading || isAnyInstalling}
+						onClick={handleInstallAllManagedClick}
+						title="Download and install official managed binaries for all dependencies"
+						className="gap-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium group"
 					>
 						{isAnyInstalling ? (
 							<>
 								<Loader2 className="w-3.5 h-3.5 animate-spin" />
-								Installing All…
+								Installing…
 							</>
 						) : (
 							<>
-								<Download className="w-3.5 h-3.5" />
-								Install All Missing
+								<Download className="w-3.5 h-3.5 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:translate-y-[1px]" />
+								{allManagedInstalled ? "Reinstall All Managed" : "Install All Managed"}
 							</>
 						)}
 					</Button>
