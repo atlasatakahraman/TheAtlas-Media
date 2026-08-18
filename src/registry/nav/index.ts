@@ -135,8 +135,12 @@ export const NAV_INDEX: SearchIndex<FlatNavItem> = buildSearchIndex(
  * Authoring mistakes in the registry are silent at runtime and painful to
  * debug — a duplicate shortcut just means one of them never fires. Fail loudly
  * in development; stay silent in the shipped build.
+ *
+ * Exported because `next build` sets NODE_ENV=production and therefore skips
+ * the call below — `scripts/check-registry.ts` runs it explicitly so CI still
+ * sees these problems.
  */
-function validateRegistry(): void {
+export function validateRegistry(): void {
 	const problems: string[] = [];
 
 	const ids = new Set<string>();

@@ -8,6 +8,9 @@ export const YOUTUBE_GROUP: NavGroup = {
 			id: "yt.download",
 			title: "Download",
 			icon: "Download",
+			// The branch owns the landing page at this route, so the header can
+			// title it and the structure check can see the page is accounted for.
+			url: "/youtube/download",
 			status: "ready",
 			items: [
 				{

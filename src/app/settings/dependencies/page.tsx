@@ -2,7 +2,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Package } from "lucide-react";
 import { toast } from "sonner";
 import DependencyActionBar from "@/components/dependencies/action-bar";
 import ClearWebKitCacheDialog from "@/components/dependencies/dialogs/clear-cache";
@@ -19,6 +18,7 @@ import useAppStorage, { refreshAppStorageSize } from "@/hooks/use-app-storage";
 import useDependency, { checkDependencyPaths, refreshDependencies } from "@/hooks/use-dependency";
 import { useInstall } from "@/hooks/use-install";
 import { useIsMounted } from "@/hooks/use-is-mounted";
+import PageShell from "@/layout/page/page-shell";
 import { countInstalled } from "@/components/dependencies/storage-banner/functions";
 import { reveal_dependency_path } from "@/lib/dependency-env";
 import { formatToolName } from "@/lib/tool-names";
@@ -30,6 +30,7 @@ import {
 	collectUpdateCheck,
 	sortToolsByPriority,
 } from "./functions";
+import { PAGE_DESCRIPTION, PAGE_TITLE } from "./data";
 
 export default function DependenciesPage() {
 	const mounted = useIsMounted();
@@ -245,19 +246,11 @@ export default function DependenciesPage() {
 	}, [clearCache]);
 
 	return (
-		<div className="p-6 md:p-8 space-y-6 select-none max-w-full">
-			<div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-				<div className="space-y-1">
-					<div className="flex items-center gap-2.5 text-foreground font-serif font-normal text-2xl">
-						<Package className="w-5 h-5 text-primary" />
-						<span>Dependency Manager</span>
-					</div>
-					<p className="text-sm text-muted-foreground">
-						Manage binary tools required for video conversion, media downloading, and
-						stream analysis.
-					</p>
-				</div>
-
+		<PageShell
+			title={PAGE_TITLE}
+			description={PAGE_DESCRIPTION}
+			icon="Package"
+			actions={
 				<DependencyActionBar
 					mounted={mounted}
 					isLoading={isLoading}
@@ -272,8 +265,8 @@ export default function DependenciesPage() {
 					allManagedInstalled={allManaged}
 					onInstallAllManagedClick={handleInstallAllManagedClick}
 				/>
-			</div>
-
+			}
+		>
 			{!mounted || isLoading ? (
 				<DependenciesPageSkeleton />
 			) : (
@@ -342,6 +335,6 @@ export default function DependenciesPage() {
 				onClose={() => setPathDialogTarget(null)}
 				onChanged={handlePathChanged}
 			/>
-		</div>
+		</PageShell>
 	);
 }

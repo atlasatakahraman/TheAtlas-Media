@@ -81,6 +81,12 @@ jobs:
             - name: Check agents rules
               run: bash scripts/check-agents-rules.sh
 
+            - name: Check structure
+              run: bash scripts/check-structure.sh
+
+            - name: Verify search engine
+              run: bun run verify:search
+
             - name: Check animation rules
               # Expected exit 1 — known shadcn issues in src/components/ui/, tracked in docs/known-issues.md.
               # Phase 1 cleanup will fix and tighten this to require exit 0.

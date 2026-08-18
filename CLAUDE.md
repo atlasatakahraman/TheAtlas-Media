@@ -25,9 +25,13 @@ bun run build                # tauri build
 bun run build:linux          # Linux wrapper (AppImage/deb/rpm)
 bun run build:arch           # Arch package via packaging/arch/PKGBUILD
 
+bun run check                # everything below, in order — run this before committing
 bun run lint                 # eslint
-bun tsc --noEmit             # typecheck
+bun run typecheck            # tsc --noEmit
+bun run verify:search        # property tests for the shared search engine
+bun run scaffold <route>     # generate a page unit + nav entry (see "Adding a page")
 bash scripts/check-agents-rules.sh      # static-export + stamp guardrails (needs rg)
+bash scripts/check-structure.sh         # component/page unit conventions + nav registry
 bash scripts/check-animation-rules.sh   # animation guardrails (see note below)
 bash scripts/check-compat.sh            # Node/Rust versions + tsc + cargo fmt + clippy
 
@@ -40,7 +44,7 @@ cargo test --no-default-features
 
 CI (`.github/workflows/ci.yml`) runs all of the above on ubuntu/macos-14/windows. Two nuances:
 
-- `check-animation-rules.sh` is invoked as `|| true`. It is **expected to exit 1** because shadcn primitives use `transition-all`. A red animation check is not a regression you introduced — confirm before "fixing" it.
+- `check-animation-rules.sh` is invoked as `|| true` because it was once expected to exit 1 on shadcn `transition-all`. **It currently exits 0** and should stay there — if it starts failing, that is a real regression, not the historical baseline.
 - `check-compat.sh` still gates Rust at ≥1.89 while everything else pins 1.97.1. Known inconsistency; leave it unless the task is specifically about the toolchain.
 
 ## Architecture
@@ -48,8 +52,9 @@ CI (`.github/workflows/ci.yml`) runs all of the above on ubuntu/macos-14/windows
 Three layers, no application server. Next.js exports to `out/`, Tauri loads it, native work crosses IPC.
 
 - `src/app/` — routes. **A root-level `app/` must NOT exist** — it silently shadows `src/app/`, and `check-agents-rules.sh` fails the build if it finds one.
-- `src/layout/` — frameless-window shell: `header/`, `sidebar/` (`Appbar.tsx` search-filter, deep-dived in `docs/appbar/logic.md`), `view/AppView.tsx` (composes SidebarProvider + Header + Toaster; owns the global Ctrl/Cmd-F and type-to-search key handling).
-- `src/components/` — product components. `src/components/ui/` is vendored shadcn code: lint-exempted, don't hand-fix style there.
+- `src/layout/` — frameless-window shell: `header/` (slot registry), `sidebar/` (`Appbar.tsx` search-filter, deep-dived in `docs/appbar/logic.md`), `page/` (`page-shell/` + `create-page-layout.tsx`), `view/AppView.tsx` (composes SidebarProvider + Header + Toaster; owns the global Ctrl/Cmd-F and type-to-search key handling, and **is the page scroll container** — a route layout must not add a second one).
+- `src/registry/` — the data the shell is built from: `nav/` (one file per product domain, merged and validated in `nav/index.ts`), `tools.ts` (one `ToolSpec` per managed binary), `icons.ts` + `icon.tsx` (explicit name → lucide map, so icons stay tree-shakeable).
+- `src/components/` — product components. `src/components/custom/` is ours and reusable; `src/components/<page>/` is page-scoped. `src/components/ui/` is vendored shadcn code: lint-exempted, don't hand-fix style there, and **never put our files inside it** — the shadcn CLI overwrites that tree.
 - `src/hooks/`, `src/lib/` — dependency/window/system state and shared helpers.
 - `src-tauri/src/lib.rs` — Tauri setup, OS/display detection, and the `invoke_handler` registry. **This is the authoritative list of what IPC commands exist.**
 - `src-tauri/src/commands/` — `dependency.rs`, `install.rs`, `update.rs` hold the real commands.
@@ -81,9 +86,32 @@ Resolution order per tool (`src-tauri/src/commands/dependency.rs`): env override
 
 `src-tauri/src/main.rs` sets `WEBKIT_DISABLE_COMPOSITING_MODE` / `WEBKIT_DISABLE_DMABUF_RENDERER`, and `lib.rs` sets `__NV_DISABLE_EXPLICIT_SYNC`, to avoid compositor deadlocks. Window position/maximize are no-ops on Wayland by design (`getWindowCapabilities`). Don't remove these as dead code.
 
+## Adding a page
+
+```bash
+bun run scaffold youtube/download/audio            # normal document page
+bun run scaffold youtube/download/audio --variant=center   # centred single-input page
+```
+
+That writes `layout.tsx`, `page.tsx`, `data.ts`, `functions.ts`, `types.ts` into the
+right route group with the verification stamp filled in, and appends a nav entry to
+the matching `src/registry/nav/*.ts` if the registry does not know the route yet.
+Give the new entry an icon and a shortcut by hand — the generator cannot guess those.
+
+A **page unit** is `layout.tsx` (a `createPageLayout()` call — variants `page`,
+`center`, `flush`), `page.tsx` (composition only, usually wrapping `PageShell`), and
+optional `data.ts` / `functions.ts` / `types.ts`. A **component unit** is a folder
+with `index.tsx` holding JSX and hooks only, plus the same optional trio. If it is a
+pure function or a literal config table, it does not belong in `index.tsx`.
+
 ## What is actually implemented
 
-`src/layout/sidebar/data.ts` declares ~97 route URLs. **Only about five pages exist**: `/`, `/youtube/download`, `/youtube/download/video`, `/settings/dependencies`, `/404`. The sidebar is a product map, not a feature list — most links 404.
+`src/registry/nav/` declares 105 entries covering ~82 routes. **Five are real pages**:
+`/`, `/youtube/download`, `/youtube/download/video`, `/settings/dependencies`, `/404`.
+The other 77 are two-file `PlannedFeature` stubs — the sidebar is a product map, and a
+`status: "planned"` entry renders an honest "not built yet" screen instead of a 404.
+Turning a stub into a real page means re-running the scaffolder with `--force` and
+flipping its registry `status` to `"ready"`.
 
 Likewise, these are empty or stub placeholders for the in-progress media layer, not working code: `src-tauri/src/commands/youtube.rs` (empty), `src/hooks/use-api.ts` (empty), `src-tauri/src/commands/model.rs` (two `#[allow(dead_code)]` structs).
 
@@ -96,6 +124,8 @@ Likewise, these are empty or stub placeholders for the in-progress media layer, 
 5. **Never import from `src-tauri/` in TS** — go through the `src/lib/*-env.ts` wrappers.
 6. **Animation: GPU properties only** — animate `transform`/`opacity`; never `transition-all` or transitions on width/height/top/left/padding/margin. RAF loops must drive refs, not `useState`.
 7. **Every `.tsx` under `src/app/` or `src/layout/`** must contain the verification stamp `// next@16.2.9 — verified against node_modules/next/dist/docs/<path>.md on <date>`. The check only tests for presence anywhere in the file, but convention is line 1 — copy the exact format from a neighbouring file.
+8. **`src/components/ui/` stays flat** — no subdirectories. The shadcn CLI owns that tree and can overwrite it, taking anything of ours with it. `check-structure.sh` refuses subdirectories outright.
+9. **Every `page.tsx` has a sibling `layout.tsx`; every `status: "ready"` nav entry resolves to a real page; every real page appears in the registry.** Enforced by `check-structure.sh`, which also runs `validateRegistry()` — `next build` skips it, since it only fires when `NODE_ENV !== "production"`.
 
 ## Known gaps — don't chase these
 
