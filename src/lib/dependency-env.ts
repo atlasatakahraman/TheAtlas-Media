@@ -55,6 +55,12 @@ export async function set_dependency_override(
 	return await invoke<DependencyInfo>("set_dependency_override", { name, path });
 }
 
+export async function set_all_dependency_overrides(
+	overrides: Record<string, string | null>,
+): Promise<DependencyReport> {
+	return await invoke<DependencyReport>("set_all_dependency_overrides", { overrides });
+}
+
 export async function get_app_storage_size_mb(): Promise<number> {
 	return await invoke<number>("get_app_storage_size_mb");
 }

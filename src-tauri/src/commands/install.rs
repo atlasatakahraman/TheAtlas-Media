@@ -4,8 +4,8 @@ use tauri::{AppHandle, Emitter};
 use tokio::io::AsyncWriteExt;
 
 use super::dependency::{
-    self, check_tool, invalidate_candidate_cache, managed_bin_dir, read_version, DependencyStatus,
-    Tool,
+    self, check_tool, invalidate_all_dependency_caches, managed_bin_dir, read_version,
+    DependencyStatus, Tool,
 };
 
 // ---------------------------------------------------------------------------
@@ -189,9 +189,9 @@ pub async fn uninstall_dependency(app: AppHandle, name: String) -> Result<(), In
         }
     }
 
-    // The managed copy is gone — any cached "Change Path" candidate list
+    // The managed copy is gone — any cached candidate list or sha256
     // still listing it is now wrong.
-    invalidate_candidate_cache();
+    invalidate_all_dependency_caches();
 
     Ok(())
 }
@@ -217,9 +217,8 @@ pub(crate) async fn do_install(
     };
 
     // A fresh binary (or a new version of one) may have landed in the managed
-    // dir, so the cached candidate probe results no longer describe what's on
-    // disk. Invalidated even on failure — a partial install still writes files.
-    invalidate_candidate_cache();
+    // dir, so candidate and sha256 caches must be fresh.
+    invalidate_all_dependency_caches();
 
     result
 }

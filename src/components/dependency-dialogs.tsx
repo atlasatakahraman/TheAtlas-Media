@@ -22,9 +22,9 @@ import {
 } from "@/components/ui/dialog";
 import { dropCandidateCache, getCachedCandidates, getSyncCachedCandidates } from "@/hooks/use-dependency";
 import type { ConfirmTarget } from "@/hooks/use-install";
-import { get_dependency_candidates, set_dependency_override } from "@/lib/dependency-env";
+import { get_dependency_candidates, set_all_dependency_overrides, set_dependency_override } from "@/lib/dependency-env";
 import { formatSourceLabel, formatToolName, getToolDisabledImpact } from "@/lib/tool-names";
-import type { DependencyCandidate } from "@/lib/types";
+import type { DependencyCandidate, DependencyReport } from "@/lib/types";
 import { cn, formatSizeBytes, formatSizeMb } from "@/lib/utils";
 import { formatVersionDisplay } from "@/lib/version";
 import {
@@ -34,6 +34,8 @@ import {
 	CheckCircle2,
 	Copy,
 	Download,
+	HardDrive,
+	Layers,
 	Loader2,
 	Package,
 	RefreshCw,
@@ -41,7 +43,9 @@ import {
 	Route,
 	ShieldAlert,
 	ShieldCheck,
+	SlidersHorizontal,
 	Sparkles,
+	Terminal,
 	Trash2,
 } from "lucide-react";
 import React from "react";
@@ -390,6 +394,8 @@ export interface DependencyPathDialogProps {
 	onClose: () => void;
 	/** Called after a successful change (including reset-to-automatic) so the caller can recheck. */
 	onChanged: () => void;
+	/** Optional callback to open the batch change dialog */
+	onOpenBatch?: () => void;
 }
 
 export const DependencyPathDialog = React.memo(function DependencyPathDialog({
@@ -397,6 +403,7 @@ export const DependencyPathDialog = React.memo(function DependencyPathDialog({
 	currentPath,
 	onClose,
 	onChanged,
+	onOpenBatch,
 }: DependencyPathDialogProps) {
 	const [candidates, setCandidates] = React.useState<DependencyCandidate[]>(
 		() => (toolKey ? getSyncCachedCandidates(toolKey) ?? [] : []),
@@ -503,23 +510,41 @@ export const DependencyPathDialog = React.memo(function DependencyPathDialog({
 						<span className="text-xs font-medium text-muted-foreground">
 							Detected Installations
 						</span>
-						<Button
-							type="button"
-							size="xs"
-							variant="ghost"
-							disabled={isLoading || isBusy}
-							onClick={handleRescan}
-							className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 group/rescan cursor-pointer rounded-md"
-							title="Re-scan system for installations"
-						>
-							<RefreshCw
-								className={cn(
-									"w-3 h-3 transition-transform duration-500 ease-in-out group-hover/rescan:rotate-180",
-									isLoading && "animate-spin",
-								)}
-							/>
-							<span>Rescan</span>
-						</Button>
+						<div className="flex items-center gap-1">
+							{onOpenBatch && (
+								<Button
+									type="button"
+									size="xs"
+									variant="ghost"
+									disabled={isBusy}
+									onClick={() => {
+										onClose();
+										onOpenBatch();
+									}}
+									className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 cursor-pointer rounded-md"
+								>
+									<SlidersHorizontal className="w-3 h-3 text-primary" />
+									<span>Batch Switch</span>
+								</Button>
+							)}
+							<Button
+								type="button"
+								size="xs"
+								variant="ghost"
+								disabled={isLoading || isBusy}
+								onClick={handleRescan}
+								className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 group/rescan cursor-pointer rounded-md"
+								title="Re-scan system for installations"
+							>
+								<RefreshCw
+									className={cn(
+										"w-3 h-3 transition-transform duration-500 ease-in-out group-hover/rescan:rotate-180",
+										isLoading && "animate-spin",
+									)}
+								/>
+								<span>Rescan</span>
+							</Button>
+						</div>
 					</div>
 
 					{isLoading ? (
@@ -624,6 +649,449 @@ export const DependencyPathDialog = React.memo(function DependencyPathDialog({
 							<Check className="w-3.5 h-3.5" />
 						)}
 						Confirm
+					</Button>
+				</DialogFooter>
+			</DialogContent>
+		</Dialog>
+	);
+});
+
+// ── Batch Change Dependency Paths Dialog ──────────────────────────────────────
+const TOOL_KEYS = ["yt-dlp", "ffmpeg", "ffprobe"] as const;
+
+export type BatchSourceMode = "auto" | "managed" | "path";
+
+export interface DependencyBatchPathDialogProps {
+	open: boolean;
+	dependencies: DependencyReport | null;
+	onClose: () => void;
+	onChanged: () => void;
+}
+
+export const DependencyBatchPathDialog = React.memo(function DependencyBatchPathDialog({
+	open,
+	dependencies,
+	onClose,
+	onChanged,
+}: DependencyBatchPathDialogProps) {
+	const [candidatesMap, setCandidatesMap] = React.useState<Record<string, DependencyCandidate[]>>({});
+	// Derive current mode from active dependencies
+	const currentMode = React.useMemo((): BatchSourceMode => {
+		if (!dependencies) return "auto";
+		const sources = [
+			dependencies.ytdlp?.source,
+			dependencies.ffmpeg?.source,
+			dependencies.ffprobe?.source,
+		];
+		if (sources.length > 0 && sources.every((s) => s === "managed")) {
+			return "managed";
+		}
+		if (sources.length > 0 && sources.every((s) => s === "path")) {
+			return "path";
+		}
+		return "auto";
+	}, [dependencies]);
+
+	const [selectedMode, setSelectedMode] = React.useState<BatchSourceMode>(() => currentMode);
+	const [isLoading, setIsLoading] = React.useState(false);
+	const [isApplying, setIsApplying] = React.useState(false);
+	const [error, setError] = React.useState<string | null>(null);
+
+	const [lastOpen, setLastOpen] = React.useState(open);
+	if (open !== lastOpen) {
+		setLastOpen(open);
+		if (open) {
+			setSelectedMode(currentMode);
+			setError(null);
+		}
+	}
+
+	const handleRescan = React.useCallback(async () => {
+		setIsLoading(true);
+		setError(null);
+		try {
+			const [yt, ff, fp] = await Promise.all([
+				get_dependency_candidates("yt-dlp", true),
+				get_dependency_candidates("ffmpeg", true),
+				get_dependency_candidates("ffprobe", true),
+			]);
+			setCandidatesMap({
+				"yt-dlp": yt,
+				ffmpeg: ff,
+				ffprobe: fp,
+			});
+		} catch (err) {
+			setError(String(err));
+		} finally {
+			setIsLoading(false);
+		}
+	}, []);
+
+	React.useEffect(() => {
+		if (!open) return;
+		let cancelled = false;
+
+		Promise.all([
+			get_dependency_candidates("yt-dlp", false),
+			get_dependency_candidates("ffmpeg", false),
+			get_dependency_candidates("ffprobe", false),
+		])
+			.then(([yt, ff, fp]) => {
+				if (!cancelled) {
+					setCandidatesMap({
+						"yt-dlp": yt,
+						ffmpeg: ff,
+						ffprobe: fp,
+					});
+				}
+			})
+			.catch((err) => {
+				if (!cancelled) {
+					setError(String(err));
+				}
+			})
+			.finally(() => {
+				if (!cancelled) {
+					setIsLoading(false);
+				}
+			});
+
+		return () => {
+			cancelled = true;
+		};
+	}, [open]);
+
+	// Compute available count for each source mode
+	const managedCounts = React.useMemo(() => {
+		let working = 0;
+		for (const key of TOOL_KEYS) {
+			const cand = candidatesMap[key]?.find((c) => c.source === "managed" && c.working);
+			if (cand) working++;
+		}
+		return working;
+	}, [candidatesMap]);
+
+	const pathCounts = React.useMemo(() => {
+		let working = 0;
+		for (const key of TOOL_KEYS) {
+			const cand = candidatesMap[key]?.find((c) => c.source === "path" && c.working);
+			if (cand) working++;
+		}
+		return working;
+	}, [candidatesMap]);
+
+	// Build target overrides object based on selected mode
+	const targetOverrides = React.useMemo<Record<string, string | null>>(() => {
+		const overrides: Record<string, string | null> = {
+			"yt-dlp": null,
+			ffmpeg: null,
+			ffprobe: null,
+		};
+
+		if (selectedMode === "auto") {
+			return overrides;
+		}
+
+		if (selectedMode === "managed") {
+			for (const key of TOOL_KEYS) {
+				const cand = candidatesMap[key]?.find((c) => c.source === "managed" && c.working);
+				if (cand) {
+					overrides[key] = cand.path;
+				}
+			}
+			return overrides;
+		}
+
+		if (selectedMode === "path") {
+			for (const key of TOOL_KEYS) {
+				const cand = candidatesMap[key]?.find((c) => c.source === "path" && c.working);
+				if (cand) {
+					overrides[key] = cand.path;
+				}
+			}
+			return overrides;
+		}
+
+		return overrides;
+	}, [candidatesMap, selectedMode]);
+
+	const handleApply = React.useCallback(async () => {
+		setIsApplying(true);
+		setError(null);
+		try {
+			await set_all_dependency_overrides(targetOverrides);
+			dropCandidateCache();
+			onChanged();
+			onClose();
+		} catch (err) {
+			setError(String(err));
+		} finally {
+			setIsApplying(false);
+		}
+	}, [targetOverrides, onChanged, onClose]);
+
+	// Source strategies definitions
+	const strategies = [
+		{
+			id: "auto" as BatchSourceMode,
+			title: "Automatic Precedence",
+			subtitle: "Restore default resolution order",
+			description: "Environment Variables → Managed App Storage → System PATH.",
+			icon: RotateCcw,
+			badge: currentMode === "auto" ? "Current (Default)" : "Default",
+			available: true,
+			badgeVariant: "bg-primary/10 text-primary border-primary/20",
+		},
+		{
+			id: "managed" as BatchSourceMode,
+			title: "Official Managed Binaries",
+			subtitle: "Application managed storage",
+			description: "Switch all tools to isolated binaries managed & updatable by TheAtlas.",
+			icon: HardDrive,
+			badge: currentMode === "managed"
+				? `Current (${managedCounts}/3 Active)`
+				: `${managedCounts}/3 Available`,
+			available: managedCounts > 0,
+			badgeVariant: managedCounts === 3
+				? "bg-chart-1/10 text-chart-1 border-chart-1/30"
+				: "bg-muted text-muted-foreground border-border",
+		},
+		{
+			id: "path" as BatchSourceMode,
+			title: "System PATH Installations",
+			subtitle: "System environment PATH",
+			description: "Switch all tools to system-wide binary installations found in PATH.",
+			icon: Terminal,
+			badge: currentMode === "path"
+				? `Current (${pathCounts}/3 Active)`
+				: `${pathCounts}/3 Detected`,
+			available: pathCounts > 0,
+			badgeVariant: pathCounts === 3
+				? "bg-chart-1/10 text-chart-1 border-chart-1/30"
+				: "bg-muted text-muted-foreground border-border",
+		},
+	];
+
+	return (
+		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && !isApplying && onClose()}>
+			<DialogContent className="sm:max-w-2xl bg-sidebar border border-sidebar-border text-foreground shadow-2xl rounded-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
+				<DialogHeader className="space-y-1.5 text-left pr-6">
+					<DialogTitle className="flex items-center gap-2.5 text-foreground font-serif font-normal text-lg">
+						<div className="p-2 rounded-lg bg-secondary text-primary border border-sidebar-border/70 shadow-2xs">
+							<SlidersHorizontal className="w-4 h-4" />
+						</div>
+						<span>Batch Switch Dependency Paths</span>
+					</DialogTitle>
+					<DialogDescription className="text-xs text-muted-foreground leading-relaxed">
+						Recursively switch active binary sources across all dependencies (FFmpeg, FFprobe, and yt-dlp) in one click.
+					</DialogDescription>
+				</DialogHeader>
+
+				<div className="space-y-3.5 overflow-y-auto pr-1 flex-1">
+					<div className="flex items-center justify-between gap-2 pt-0.5">
+						<span className="text-xs font-medium text-foreground">
+							Select Source Strategy
+						</span>
+						<Button
+							type="button"
+							size="xs"
+							variant="ghost"
+							disabled={isLoading || isApplying}
+							onClick={handleRescan}
+							className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 group/rescan cursor-pointer rounded-md"
+							title="Re-scan all installations on the system"
+						>
+							<RefreshCw
+								className={cn(
+									"w-3 h-3 transition-transform duration-500 ease-in-out group-hover/rescan:rotate-180",
+									isLoading && "animate-spin",
+								)}
+							/>
+							<span>Rescan System</span>
+						</Button>
+					</div>
+
+					{/* Strategy Selection List */}
+					<div className="space-y-2">
+						{strategies.map((strat) => {
+							const isSelected = selectedMode === strat.id;
+							const Icon = strat.icon;
+							return (
+								<button
+									key={strat.id}
+									type="button"
+									disabled={!strat.available || isApplying}
+									onClick={() => setSelectedMode(strat.id)}
+									className={cn(
+										"w-full flex items-center justify-between gap-3 rounded-xl border p-3 text-left text-xs transition-colors cursor-pointer",
+										isSelected
+											? "border-primary bg-primary/10 ring-1 ring-primary/40 shadow-xs"
+											: "border-sidebar-border/60 bg-sidebar/80 hover:bg-sidebar",
+										!strat.available && "opacity-50 cursor-not-allowed",
+									)}
+								>
+									<div className="flex items-center gap-3 min-w-0">
+										<div
+											className={cn(
+												"p-2 rounded-lg border shrink-0",
+												isSelected
+													? "bg-primary text-primary-foreground border-primary/20"
+													: "bg-secondary text-primary border-sidebar-border/70",
+											)}
+										>
+											<Icon className="w-4 h-4" />
+										</div>
+										<div className="space-y-0.5 min-w-0">
+											<div className="flex items-center gap-2 font-medium text-foreground">
+												<span>{strat.title}</span>
+												{isSelected && (
+													<CheckCircle2 className="w-3.5 h-3.5 text-chart-1 shrink-0" />
+												)}
+											</div>
+											<p className="text-[11px] text-muted-foreground leading-relaxed">
+												{strat.description}
+											</p>
+										</div>
+									</div>
+									<span
+										className={cn(
+											"shrink-0 rounded-full border text-[10px] font-mono px-2.5 py-0.5 font-medium shadow-2xs whitespace-nowrap",
+											strat.badgeVariant,
+										)}
+									>
+										{strat.badge}
+									</span>
+								</button>
+							);
+						})}
+					</div>
+
+					{/* Live Per-Tool Impact Preview */}
+					<div className="rounded-xl border border-sidebar-border bg-background/60 p-3 space-y-2.5">
+						<div className="flex items-center justify-between gap-2 pb-1.5 border-b border-sidebar-border/60 text-xs font-medium text-foreground">
+							<div className="flex items-center gap-1.5">
+								<Layers className="w-3.5 h-3.5 text-primary" />
+								<span>Preview of Applied Changes</span>
+							</div>
+							<span className="text-[11px] text-muted-foreground font-mono font-normal">
+								3 Dependencies
+							</span>
+						</div>
+
+						{isLoading ? (
+							<div className="flex items-center justify-center gap-2 py-5 text-xs text-muted-foreground">
+								<Loader2 className="w-4 h-4 animate-spin text-primary" />
+								<span>Querying system candidate paths…</span>
+							</div>
+						) : (
+							<div className="space-y-2 pt-0.5">
+								{TOOL_KEYS.map((toolKey) => {
+									const currentInfo = dependencies?.[toolKey === "yt-dlp" ? "ytdlp" : toolKey];
+									const candidates = candidatesMap[toolKey] ?? [];
+									const targetPath = targetOverrides[toolKey];
+
+									const matchingCandidate = targetPath
+										? candidates.find((c) => c.path === targetPath)
+										: null;
+
+									const isTargetMissing = selectedMode !== "auto" && !targetPath;
+
+									return (
+										<div
+											key={toolKey}
+											className="w-full rounded-xl border border-sidebar-border/60 bg-sidebar/80 p-3 space-y-2 text-left text-xs text-foreground transition-colors hover:bg-sidebar"
+										>
+											<div className="flex items-center justify-between gap-2 font-medium">
+												<div className="flex items-center gap-2">
+													<Package className="w-4 h-4 text-primary shrink-0" />
+													<span className="font-medium text-sm text-foreground">{formatToolName(toolKey)}</span>
+												</div>
+												{isTargetMissing ? (
+													<span className="rounded-full bg-destructive/10 text-destructive border border-destructive/20 text-[10px] px-2 py-0.5 font-mono">
+														Not Found in {selectedMode === "managed" ? "Managed" : "PATH"}
+													</span>
+												) : selectedMode === "auto" ? (
+													<span className="rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] px-2.5 py-0.5 font-mono font-medium">
+														Automatic Precedence
+													</span>
+												) : (
+													<span className="rounded-full bg-chart-1/10 text-chart-1 border border-chart-1/30 text-[10px] px-2.5 py-0.5 font-mono font-medium flex items-center gap-1">
+														<CheckCircle2 className="w-3 h-3" />
+														{matchingCandidate ? formatSourceLabel(matchingCandidate.source) : "Custom"}
+													</span>
+												)}
+											</div>
+
+											<div className="flex items-center gap-2 pl-6 font-mono text-[11px]">
+												<span
+													className="bg-background/60 px-2 py-0.5 rounded-md border border-sidebar-border/50 text-muted-foreground truncate max-w-[220px]"
+													title={currentInfo?.path ?? "Automatic"}
+												>
+													{currentInfo?.source ? formatSourceLabel(currentInfo.source) : "Automatic"}
+													{currentInfo?.version ? ` (${formatVersionDisplay(currentInfo.version)})` : ""}
+												</span>
+												<ArrowRight className="w-3.5 h-3.5 text-muted-foreground/70 shrink-0" />
+												<span
+													className={cn(
+														"px-2 py-0.5 rounded-md border font-medium truncate max-w-[260px]",
+														isTargetMissing
+															? "bg-destructive/10 border-destructive/20 text-destructive"
+															: "bg-primary/10 border-primary/20 text-foreground",
+													)}
+													title={targetPath ?? "Automatic Resolution"}
+												>
+													{selectedMode === "auto"
+														? "Automatic Resolution"
+														: matchingCandidate
+															? `${formatSourceLabel(matchingCandidate.source)}${matchingCandidate.version ? ` (${formatVersionDisplay(matchingCandidate.version)})` : ""}`
+															: "Unchanged (Not Available)"}
+												</span>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						)}
+					</div>
+
+					{error && (
+						<div className="rounded-lg border border-destructive/40 bg-destructive/10 p-2.5 flex items-start gap-2 text-[11px] text-destructive">
+							<AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+							<span className="break-words">{error}</span>
+						</div>
+					)}
+				</div>
+
+				<DialogFooter className="pt-4 -mb-2 border-t border-sidebar-border/60 flex items-center justify-end gap-2.5">
+					<Button
+						type="button"
+						size="sm"
+						variant="ghost"
+						disabled={isApplying}
+						onClick={onClose}
+						className="text-xs text-muted-foreground hover:text-foreground rounded-md"
+					>
+						Cancel
+					</Button>
+					<Button
+						type="button"
+						size="sm"
+						variant="default"
+						disabled={isApplying || isLoading}
+						onClick={handleApply}
+						className="rounded-md bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 text-xs font-medium gap-1.5 shadow-xs"
+					>
+						{isApplying ? (
+							<>
+								<Loader2 className="w-3.5 h-3.5 animate-spin" />
+								Applying…
+							</>
+						) : (
+							<>
+								<Check className="w-3.5 h-3.5" />
+								Apply to All Dependencies
+							</>
+						)}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

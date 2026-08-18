@@ -128,6 +128,7 @@ pub fn run() {
             commands::dependency::reveal_dependency_path,
             commands::dependency::get_dependency_candidates,
             commands::dependency::set_dependency_override,
+            commands::dependency::set_all_dependency_overrides,
             commands::dependency::get_webkit_cache_size_mb,
             commands::dependency::clear_webkit_cache,
             commands::install::install_dependency,

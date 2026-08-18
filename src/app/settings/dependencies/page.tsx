@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
 	ClearWebKitCacheDialog,
+	DependencyBatchPathDialog,
 	DependencyInstallDialog,
 	DependencyPathDialog,
 	DependencyUninstallDialog,
@@ -47,6 +48,7 @@ import {
 	Scale,
 	ShieldAlert,
 	ShieldCheck,
+	SlidersHorizontal,
 	Terminal,
 	Trash2,
 	type LucideIcon,
@@ -866,6 +868,7 @@ export default function DependenciesPage() {
 
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
 	const [isCheckingPaths, setIsCheckingPaths] = useState(false);
+	const [showBatchPathDialog, setShowBatchPathDialog] = useState(false);
 	const [uninstallingKeys, setUninstallingKeys] = useState<Set<string>>(new Set());
 	const [revealingPaths, setRevealingPaths] = useState<Set<string>>(new Set());
 
@@ -1036,7 +1039,7 @@ export default function DependenciesPage() {
 					(d) => d.status === "installed",
 				).length;
 				if (report.allInstalled) {
-					toast.success("All dependency paths checked and verified (3/3 installed)");
+					toast.success("All dependency paths detected (3/3 installed)");
 				} else {
 					toast.info(
 						`Dependency paths checked (${installedCount}/3 installed, ${3 - installedCount} missing)`,
@@ -1096,12 +1099,12 @@ export default function DependenciesPage() {
 				</div>
 				<div className="flex flex-wrap items-center gap-2">
 					<Button
-						variant={webviewCacheMb !== null && webviewCacheMb >= 70 ? "destructive" : "outline"}
+						variant={mounted && webviewCacheMb !== null && webviewCacheMb >= 70 ? "destructive" : "outline"}
 						size="sm"
-						disabled={isClearingCache || !(webviewCacheMb !== null && webviewCacheMb >= 70)}
+						disabled={!mounted || isClearingCache || !(webviewCacheMb !== null && webviewCacheMb >= 70)}
 						onClick={() => setShowClearCacheConfirm(true)}
 						title={
-							webviewCacheMb !== null && webviewCacheMb < 70
+							mounted && webviewCacheMb !== null && webviewCacheMb < 70
 								? `Requires ≥ 70 MiB to clear (current: ${formatSizeMb(webviewCacheMb)})`
 								: undefined
 						}
@@ -1112,9 +1115,9 @@ export default function DependenciesPage() {
 						) : (
 							<Trash2 className="w-3.5 h-3.5" />
 						)}
-						Clear Cache
-						{webviewCacheMb !== null && webviewCacheMb > 0.01 && (
-							<span className="text-muted-foreground font-normal">
+						<span>Clear Cache</span>
+						{mounted && webviewCacheMb !== null && webviewCacheMb > 0.01 && (
+							<span className="text-muted-foreground font-normal" suppressHydrationWarning>
 								({formatSizeMb(webviewCacheMb)})
 							</span>
 						)}
@@ -1122,9 +1125,8 @@ export default function DependenciesPage() {
 					<Button
 						variant="outline"
 						size="sm"
-						disabled={isCheckingPaths || isCheckingUpdates || isAnyInstalling}
+						disabled={!mounted || isCheckingPaths || isCheckingUpdates || isAnyInstalling}
 						onClick={handleCheckPaths}
-						title="Manually re-scan all dependency paths across the system"
 						className="gap-1.5 border-border rounded-md text-xs font-medium group/check-paths"
 					>
 						{isCheckingPaths ? (
@@ -1137,7 +1139,17 @@ export default function DependenciesPage() {
 					<Button
 						variant="outline"
 						size="sm"
-						disabled={isCheckingPaths || isCheckingUpdates || isAnyInstalling}
+						disabled={!mounted || isCheckingPaths || isCheckingUpdates || isAnyInstalling}
+						onClick={() => setShowBatchPathDialog(true)}
+						className="gap-1.5 border-border rounded-md text-xs font-medium group/batch-paths"
+					>
+						<SlidersHorizontal className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover/batch-paths:scale-115" />
+						Change Paths
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						disabled={!mounted || isCheckingPaths || isCheckingUpdates || isAnyInstalling}
 						onClick={handleCheckUpdates}
 						className="gap-1.5 border-border rounded-md text-xs font-medium"
 					>
@@ -1152,7 +1164,6 @@ export default function DependenciesPage() {
 						size="sm"
 						disabled={!mounted || isLoading || isAnyInstalling}
 						onClick={handleInstallAllManagedClick}
-						title="Download and install official managed binaries for all dependencies"
 						className="gap-1.5 bg-primary text-primary-foreground rounded-md text-xs font-medium group"
 					>
 						{isAnyInstalling ? (
@@ -1163,7 +1174,9 @@ export default function DependenciesPage() {
 						) : (
 							<>
 								<Download className="w-3.5 h-3.5 transition-transform duration-200 ease-out group-hover:scale-105 group-hover:translate-y-[1px]" />
-								{allManagedInstalled ? "Reinstall All Managed" : "Install All Managed"}
+								<span suppressHydrationWarning>
+									{mounted && allManagedInstalled ? "Reinstall All Managed" : "Install All Managed"}
+								</span>
 							</>
 						)}
 					</Button>
@@ -1291,6 +1304,15 @@ export default function DependenciesPage() {
 				toolKey={pathDialogTarget}
 				currentPath={pathDialogTarget ? (depMap[pathDialogTarget]?.path ?? null) : null}
 				onClose={() => setPathDialogTarget(null)}
+				onChanged={handlePathChanged}
+				onOpenBatch={() => setShowBatchPathDialog(true)}
+			/>
+
+			{/* Batch Change Paths Dialog */}
+			<DependencyBatchPathDialog
+				open={showBatchPathDialog}
+				dependencies={dependencies.status === "ready" ? dependencies.deps : null}
+				onClose={() => setShowBatchPathDialog(false)}
 				onChanged={handlePathChanged}
 			/>
 		</div>

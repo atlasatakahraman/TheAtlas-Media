@@ -287,9 +287,16 @@ fn candidate_cache(
     CANDIDATE_CACHE.get_or_init(Default::default)
 }
 
+/// Drop candidate paths cache so fresh candidate locations on the system are scanned.
+pub(crate) fn invalidate_candidate_cache() {
+    if let Ok(mut cache) = candidate_cache().lock() {
+        cache.clear();
+    }
+}
+
 /// Drop every cached candidate list, version cache, and sha256 cache. Call after any
 /// action that installs, uninstalls, updates, or re-points a dependency.
-pub(crate) fn invalidate_candidate_cache() {
+pub(crate) fn invalidate_all_dependency_caches() {
     if let Ok(mut cache) = candidate_cache().lock() {
         cache.clear();
     }
@@ -426,8 +433,40 @@ pub async fn set_dependency_override(
     Ok(check_tool(&app, tool).await)
 }
 
-/// Manually re-check all dependency paths across the system from scratch,
-/// invalidating candidate, version, and SHA-256 caches.
+/// Batch-set or clear manual path overrides for multiple tools at once.
+#[tauri::command]
+pub async fn set_all_dependency_overrides(
+    app: AppHandle,
+    overrides: std::collections::HashMap<String, Option<String>>,
+) -> Result<DependencyReport, String> {
+    let mut prefs = load_dependency_prefs(&app).await;
+
+    for (name, path) in overrides {
+        if let Ok(tool) = tool_from_name(&name) {
+            let normalized = match path {
+                Some(p) if !p.trim().is_empty() => {
+                    let trimmed = p.trim().to_string();
+                    let pb = PathBuf::from(&trimmed);
+                    if pb.exists() && read_version(&pb, tool).await.is_ok() {
+                        Some(trimmed)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            };
+            prefs.set_path_for(tool, normalized);
+        }
+    }
+
+    save_dependency_prefs(&app, &prefs).await?;
+    invalidate_candidate_cache();
+
+    check_dependencies(app).await
+}
+
+/// Manually re-scan all dependency candidate paths across the system (PATH, env, managed),
+/// invalidating only the candidate path cache without re-computing or invalidating SHA-256 hashes.
 #[tauri::command]
 pub async fn check_dependency_paths(app: AppHandle) -> Result<DependencyReport, String> {
     invalidate_candidate_cache();
