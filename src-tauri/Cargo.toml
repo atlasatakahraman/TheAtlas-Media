@@ -26,10 +26,9 @@ tauri-plugin-log = "2"
 tauri-plugin-opener = "2.5.4"
 tauri-plugin-os = "2.3.2"
 regex = "1.13.1"
-reqwest = "0.13.4"
+reqwest = { version = "0.13.4", features = ["json"] }
 urlencoding = "2.1.3"
-yt-dlp = "2.8.2"
-tokio = { version = "1.53.1", features = ["process", "time", "fs", "io-util"] }
+tokio = { version = "1.53.1", features = ["process", "time", "fs", "io-util", "macros"] }
 thiserror = "2"
 tar = "0.4"
 xz2 = "0.1"
