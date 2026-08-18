@@ -14,6 +14,7 @@
 		"next:build": "bun --bun next build",
 		"next:start": "bun --bun next start",
 		"lint": "bun --bun eslint",
+		"verify:search": "bun --bun scripts/verify-search.ts",
 		"tauri:dev": "bun --bun tauri dev",
 		"tauri:build": "bun --bun icon && bun --bun tauri build",
 		"build:linux": "bun --bun icon && bash scripts/build-linux.sh",
