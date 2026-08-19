@@ -67,3 +67,6 @@ packaging/arch/src/
 packaging/arch/*.pkg.tar.zst
 packaging/arch/*.deb
 
+
+# Superpowers subagent-driven-development scratch
+.superpowers/
