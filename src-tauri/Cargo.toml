@@ -36,7 +36,7 @@ tokio = { version = "1.53.1", features = ["process", "time", "fs", "io-util", "m
 thiserror = "2"
 tar = "0.4"
 xz2 = "0.1"
-zip = "2"
+zip = "8"
 sha2 = "0.10"
 
 [dev-dependencies]
