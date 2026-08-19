@@ -13,6 +13,7 @@ import {
 } from "@/lib/dependency-env";
 import { createKeyedResource } from "@/lib/store/create-async-resource";
 import { createStore, useStore } from "@/lib/store/create-store";
+import { errorMessage } from "@/lib/types";
 import { formatSizeMb } from "@/lib/utils";
 import { aliasesOf, getTool, TOOLS } from "@/registry/tools";
 
@@ -162,8 +163,8 @@ async function install(name: string): Promise<void> {
 	try {
 		await install_dependency(name);
 	} catch (e) {
-		writeProgress(name, { name, status: "failed", progress: 0, message: String(e) });
-		toast.error(`Failed to start installation for ${name}: ${String(e)}`);
+		writeProgress(name, { name, status: "failed", progress: 0, message: errorMessage(e) });
+		toast.error(`Failed to start installation for ${name}: ${errorMessage(e)}`);
 	}
 }
 
@@ -184,9 +185,9 @@ async function installAll(toolNames?: string[]): Promise<void> {
 			name,
 			status: "failed",
 			progress: 0,
-			message: String(e),
+			message: errorMessage(e),
 		}));
-		toast.error(`Failed to start installing tools: ${String(e)}`);
+		toast.error(`Failed to start installing tools: ${errorMessage(e)}`);
 	}
 }
 
@@ -197,7 +198,7 @@ async function uninstall(name: string): Promise<boolean> {
 		dropCandidateCache();
 		return true;
 	} catch (e) {
-		toast.error(`Failed to uninstall ${name}: ${String(e)}`);
+		toast.error(`Failed to uninstall ${name}: ${errorMessage(e)}`);
 		return false;
 	}
 }

@@ -88,8 +88,10 @@ jobs:
               run: bun run verify:search
 
             - name: Check animation rules
-              # Expected exit 1 — known shadcn issues in src/components/ui/, tracked in docs/known-issues.md.
-              # Phase 1 cleanup will fix and tighten this to require exit 0.
+              # Currently exits 0 and must stay there. The `|| true` is kept only
+              # because CI history treated a non-zero exit as the baseline; a
+              # failure here now is a real regression, so check the log rather
+              # than assuming it is the old shadcn noise.
               run: bash scripts/check-animation-rules.sh || true
 
             - name: Check compat
@@ -110,3 +112,31 @@ jobs:
             - name: Cargo test
               working-directory: src-tauri
               run: cargo test --no-default-features
+
+    supply-chain:
+        # Advisories, licences, banned crates and source registries. One runner
+        # is enough: `cargo deny` walks the dependency graph for every target,
+        # not just the host's.
+        #
+        # `cargo audit` is deliberately not also run — it reads the same RustSec
+        # database that `cargo deny check advisories` does, so a second job
+        # would spend CI minutes to re-report the same findings.
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Rust
+              uses: dtolnay/rust-toolchain@master
+              with:
+                  toolchain: 1.97.1
+
+            - name: Install cargo-deny
+              uses: taiki-e/install-action@v2
+              with:
+                  tool: cargo-deny
+
+            - name: Cargo deny
+              working-directory: src-tauri
+              run: cargo deny check

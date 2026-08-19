@@ -9,6 +9,7 @@ import {
 	open_app_storage_dir,
 } from "@/lib/dependency-env";
 import { createAsyncResource, useResource } from "@/lib/store/create-async-resource";
+import { errorMessage } from "@/lib/types";
 import { formatSizeMb } from "@/lib/utils";
 
 // Both sizes are module-level resources, so navigating away and back reuses the
@@ -60,7 +61,7 @@ export default function useAppStorage(): AppStorage {
 			void webviewCacheSize.refresh();
 			void appStorageSize.refresh();
 		} catch (e) {
-			toast.error("Failed to clear cache: " + String(e));
+			toast.error(`Failed to clear cache: ${errorMessage(e)}`);
 		} finally {
 			setIsClearingCache(false);
 		}
@@ -81,7 +82,7 @@ export default function useAppStorage(): AppStorage {
 			const path = await open_app_storage_dir();
 			toast.success("Opened managed storage folder", { description: path });
 		} catch (e) {
-			toast.error(`Failed to open storage folder: ${String(e)}`);
+			toast.error(`Failed to open storage folder: ${errorMessage(e)}`);
 		} finally {
 			openingRef.current = false;
 			setIsOpeningStorageDir(false);

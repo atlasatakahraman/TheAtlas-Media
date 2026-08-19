@@ -18,7 +18,7 @@ import {
 } from "@/hooks/use-dependency";
 import { get_dependency_candidates, set_dependency_override } from "@/lib/dependency-env";
 import { formatSourceLabel, formatToolName } from "@/lib/tool-names";
-import type { DependencyCandidate } from "@/lib/types";
+import { errorMessage, type DependencyCandidate } from "@/lib/types";
 import { cn, formatSizeBytes } from "@/lib/utils";
 import { formatVersionDisplay } from "@/lib/version";
 import { AUTO_PATH, type DependencyPathDialogProps } from "./types";
@@ -74,7 +74,7 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 				if (!cancelled) setCandidates(result);
 			})
 			.catch((e: unknown) => {
-				if (!cancelled) setError(String(e));
+				if (!cancelled) setError(errorMessage(e));
 			})
 			.finally(() => {
 				if (!cancelled) setLoadedForKey(toolKey);
@@ -97,7 +97,7 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 				onChanged();
 				onClose();
 			} catch (e) {
-				setError(String(e));
+				setError(errorMessage(e));
 			} finally {
 				setPendingPath(null);
 			}
@@ -112,7 +112,7 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 		try {
 			setCandidates(await get_dependency_candidates(toolKey, true));
 		} catch (e) {
-			setError(String(e));
+			setError(errorMessage(e));
 		} finally {
 			setLoadedForKey(toolKey);
 		}

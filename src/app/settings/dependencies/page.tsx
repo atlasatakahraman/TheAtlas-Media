@@ -22,6 +22,7 @@ import PageShell from "@/layout/page/page-shell";
 import { countInstalled } from "@/components/dependencies/storage-banner/functions";
 import { reveal_dependency_path } from "@/lib/dependency-env";
 import { formatToolName } from "@/lib/tool-names";
+import { errorMessage } from "@/lib/types";
 import { TOOLS } from "@/registry/tools";
 import {
 	allManagedInstalled as areAllManagedInstalled,
@@ -149,7 +150,7 @@ export default function DependenciesPage() {
 		setRevealingPaths((prev) => new Set(prev).add(path));
 
 		reveal_dependency_path(path)
-			.catch((e: unknown) => toast.error(`Failed to reveal path: ${String(e)}`))
+			.catch((e: unknown) => toast.error(`Failed to reveal path: ${errorMessage(e)}`))
 			.finally(() => {
 				revealingPathsRef.current.delete(path);
 				setRevealingPaths((prev) => {
@@ -186,7 +187,7 @@ export default function DependenciesPage() {
 				setShowUpToDateDialog(true);
 			}
 		} catch (e) {
-			toast.error("Failed to check for updates: " + String(e));
+			toast.error(`Failed to check for updates: ${errorMessage(e)}`);
 		} finally {
 			setIsCheckingUpdates(false);
 		}
@@ -211,7 +212,7 @@ export default function DependenciesPage() {
 				);
 			}
 		} catch (e) {
-			toast.error("Failed to check dependency paths: " + String(e));
+			toast.error(`Failed to check dependency paths: ${errorMessage(e)}`);
 		} finally {
 			setIsCheckingPaths(false);
 		}

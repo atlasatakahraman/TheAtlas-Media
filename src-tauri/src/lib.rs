@@ -1,8 +1,29 @@
+//! Application entry point: builder setup, state registration, and the
+//! authoritative list of IPC commands.
+//!
+//! `deny` rather than `forbid` for `unsafe_code` because `sys/` needs exactly
+//! one documented exception and `forbid` cannot be lifted locally. Everything
+//! else in the crate is safe Rust, and the lint says so at build time rather
+//! than by convention.
+#![deny(unsafe_code)]
+
 pub mod commands;
+pub mod core;
+pub mod error;
+pub mod state;
+pub mod sys;
 
 use std::env::consts::OS;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
+use tauri::Manager;
+
+use crate::error::AppResult;
+use crate::state::{AppPaths, AppState};
+
+// Detected once and never changed afterwards, which is what `OnceLock` is for.
+// The mutable state — probe caches, the KV store — lives in `AppState` behind
+// `.manage()` instead; see the note at the top of `state.rs`.
 static DISPLAY_SERVER: OnceLock<DisplayServer> = OnceLock::new();
 #[allow(dead_code)]
 static COMPOSITING_DISABLED: OnceLock<bool> = OnceLock::new();
@@ -71,8 +92,10 @@ fn get_display_server() -> DisplayServer {
     DISPLAY_SERVER.get_or_init(detect_display_server).clone()
 }
 
+/// Move the window. A no-op under Wayland, which does not let a client place
+/// its own surface — see the Linux notes in CLAUDE.md.
 #[tauri::command]
-async fn set_window_position(window: tauri::WebviewWindow, x: i32, y: i32) -> Result<(), String> {
+async fn set_window_position(window: tauri::WebviewWindow, x: i32, y: i32) -> AppResult<()> {
     #[cfg(target_os = "linux")]
     if matches!(
         DISPLAY_SERVER.get_or_init(detect_display_server),
@@ -83,7 +106,7 @@ async fn set_window_position(window: tauri::WebviewWindow, x: i32, y: i32) -> Re
 
     window
         .set_position(tauri::Position::Physical(tauri::PhysicalPosition { x, y }))
-        .map_err(|e| e.to_string())
+        .map_err(|error| crate::error::AppError::internal(error.to_string()))
 }
 
 #[tauri::command]
@@ -93,8 +116,8 @@ fn open_devtools(window: tauri::WebviewWindow) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    // Force disable OpenGL explicit sync on NVIDIA cards (prevents compositor deadlock
-    // when startViewTransition is used under Wayland on Linux)
+    // Force-disable OpenGL explicit sync on NVIDIA cards; without it a
+    // `startViewTransition` under Wayland deadlocks the compositor.
     #[cfg(target_os = "linux")]
     {
         std::env::set_var("__NV_DISABLE_EXPLICIT_SYNC", "1");
@@ -108,35 +131,70 @@ pub fn run() {
             OPERATING_SYSTEM.get_or_init(detect_operating_system);
 
             let handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let _ = commands::update::run_update_check(&handle, false).await;
-            });
+
+            // Failing here is correct and loud: an app that cannot find its
+            // own data directory or build an HTTP client has nothing to offer,
+            // and a half-initialised one would fail later in ways that read as
+            // unrelated bugs.
+            let paths = AppPaths::resolve(&handle)?;
+            let state = Arc::new(AppState::new(paths)?);
+            app.manage(Arc::clone(&state));
+
+            // The KV store's debounced writer. One task for the process; it
+            // sleeps on a `Notify` and costs nothing while the app is idle.
+            tauri::async_runtime::spawn(Arc::clone(&state.kv).run_flush_loop());
+
+            commands::update::spawn_startup_check(&handle);
 
             Ok(())
         })
+        .on_window_event(|window, event| {
+            // A pending debounced write must not die with the window. This is
+            // the only place a preference set in the last few hundred
+            // milliseconds before a quit gets to reach the disk.
+            if matches!(event, tauri::WindowEvent::Destroyed) {
+                if let Some(state) = window.app_handle().try_state::<Arc<AppState>>() {
+                    let kv = Arc::clone(&state.kv);
+                    tauri::async_runtime::block_on(async move {
+                        if let Err(error) = kv.flush_all().await {
+                            log::warn!("could not flush preferences on exit: {error}");
+                        }
+                    });
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
+            // Shell
             get_display_server,
-            set_window_position,
             get_operating_system,
+            set_window_position,
             open_devtools,
-            commands::dependency::check_installed_dependencies,
+            // Dependency detection
             commands::dependency::check_dependencies,
+            commands::dependency::check_installed_dependencies,
             commands::dependency::check_dependency_paths,
-            commands::dependency::get_app_storage_size_mb,
-            commands::dependency::get_app_storage_path,
-            commands::dependency::open_app_storage_dir,
-            commands::dependency::reveal_dependency_path,
             commands::dependency::get_dependency_candidates,
             commands::dependency::set_dependency_override,
-            commands::dependency::get_webkit_cache_size_mb,
-            commands::dependency::clear_webkit_cache,
+            // Install lifecycle
             commands::install::install_dependency,
             commands::install::install_tools,
             commands::install::install_all_missing,
             commands::install::uninstall_dependency,
             commands::install::get_download_size_mb,
-            commands::install::get_all_download_sizes_mb,
             commands::update::check_for_updates,
+            // Storage
+            commands::storage::get_app_storage_path,
+            commands::storage::get_app_storage_size_mb,
+            commands::storage::open_app_storage_dir,
+            commands::storage::reveal_dependency_path,
+            commands::storage::get_webkit_cache_size_mb,
+            commands::storage::clear_webkit_cache,
+            // Preferences
+            commands::prefs::kv_get,
+            commands::prefs::kv_entries,
+            commands::prefs::kv_set,
+            commands::prefs::kv_patch,
+            commands::prefs::kv_delete,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

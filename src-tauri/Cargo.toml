@@ -4,6 +4,10 @@ version = "0.0.1"
 description = "A high-performance desktop app for downloading, extracting, and converting media."
 authors = ["atlasatakahraman"]
 license = "AAKNCL-1.0"
+# A desktop app, never a crates.io package. Also what lets `cargo deny`'s
+# `private` exception apply, since AAKNCL-1.0 is not an SPDX identifier and the
+# licence expression above cannot be parsed.
+publish = false
 repository = "https://github.com/atlasatakahraman/TheAtlas-Media"
 edition = "2021"
 rust-version = "1.97.1"
@@ -28,9 +32,33 @@ tauri-plugin-os = "2.3.2"
 regex = "1.13.1"
 reqwest = { version = "0.13.4", features = ["json"] }
 urlencoding = "2.1.3"
-tokio = { version = "1.53.1", features = ["process", "time", "fs", "io-util", "macros"] }
+tokio = { version = "1.53.1", features = ["process", "time", "fs", "io-util", "macros", "rt", "rt-multi-thread", "sync"] }
 thiserror = "2"
 tar = "0.4"
 xz2 = "0.1"
 zip = "2"
 sha2 = "0.10"
+
+[dev-dependencies]
+# `#[tokio::test]` needs a runtime to build; the app itself runs on the one
+# Tauri owns, so this stays out of the shipped dependency set.
+tokio = { version = "1.53.1", features = ["macros", "rt", "rt-multi-thread", "time", "fs"] }
+
+# Shipped-binary profile. `lto = "fat"` plus one codegen unit is the pairing
+# `Rust-Tauri/02` prescribes: cross-crate inlining at the cost of a slower
+# build, which is the right trade for a desktop app built far less often than
+# it is run.
+#
+# `panic = "abort"` is deliberately NOT set. It would shrink the binary, but it
+# turns any panic in a `#[tauri::command]` into a whole-app crash, and those
+# commands are reachable from the webview. `03-Rust-Concurrency-Async` calls
+# that out explicitly; unwinding keeps a bug in one command to one rejected
+# promise.
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+strip = true
+# Kept on in a release build: a silent wrap in size arithmetic would be a
+# correctness bug in code that decides how many bytes to allocate or hash.
+overflow-checks = true
