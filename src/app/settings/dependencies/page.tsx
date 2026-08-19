@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import DependencyActionBar from "@/components/dependencies/action-bar";
 import ClearWebKitCacheDialog from "@/components/dependencies/dialogs/clear-cache";
+import DependencyBatchPathDialog from "@/components/dependencies/dialogs/batch-path";
 import DependencyInstallDialog from "@/components/dependencies/dialogs/install";
 import DependencyPathDialog from "@/components/dependencies/dialogs/path-picker";
 import DependencyUninstallDialog from "@/components/dependencies/dialogs/uninstall";
@@ -59,6 +60,7 @@ export default function DependenciesPage() {
 	const [uninstallTarget, setUninstallTarget] = useState<string | null>(null);
 	const [pathDialogTarget, setPathDialogTarget] = useState<string | null>(null);
 	const [showClearCacheConfirm, setShowClearCacheConfirm] = useState(false);
+	const [showBatchPathDialog, setShowBatchPathDialog] = useState(false);
 	const [showUpToDateDialog, setShowUpToDateDialog] = useState(false);
 	const [upToDateTools, setUpToDateTools] = useState<ToolChecksumInfo[]>([]);
 	const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
@@ -261,6 +263,7 @@ export default function DependenciesPage() {
 					onClearCacheClick={() => setShowClearCacheConfirm(true)}
 					isCheckingPaths={isCheckingPaths}
 					onCheckPaths={handleCheckPaths}
+					onChangeAllPaths={() => setShowBatchPathDialog(true)}
 					isCheckingUpdates={isCheckingUpdates}
 					onCheckUpdates={handleCheckUpdates}
 					allManagedInstalled={allManaged}
@@ -334,6 +337,14 @@ export default function DependenciesPage() {
 				toolKey={pathDialogTarget}
 				currentPath={pathDialogTarget ? (depMap[pathDialogTarget]?.path ?? null) : null}
 				onClose={() => setPathDialogTarget(null)}
+				onChanged={handlePathChanged}
+				onOpenBatch={() => setShowBatchPathDialog(true)}
+			/>
+
+			<DependencyBatchPathDialog
+				open={showBatchPathDialog}
+				dependencies={report ?? null}
+				onClose={() => setShowBatchPathDialog(false)}
 				onChanged={handlePathChanged}
 			/>
 		</PageShell>

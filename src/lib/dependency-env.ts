@@ -69,6 +69,23 @@ export async function set_dependency_override(
 	return await invoke<DependencyInfo>("set_dependency_override", { name, path });
 }
 
+/**
+ * Repoint every listed tool in one write, returning the fresh report.
+ *
+ * One call rather than N `set_dependency_override`s: the backend saves the
+ * prefs file once and rebuilds the report once, and a half-applied batch
+ * cannot leave the tools split across two sources.
+ *
+ * A key whose path will not run is silently reset to automatic for that tool
+ * — switching everything to "system PATH" when only two of three are on PATH
+ * moves the two.
+ */
+export async function set_all_dependency_overrides(
+	overrides: Record<string, string | null>,
+): Promise<DependencyReport> {
+	return await invoke<DependencyReport>("set_all_dependency_overrides", { overrides });
+}
+
 export async function get_app_storage_size_mb(): Promise<number> {
 	return await invoke<number>("get_app_storage_size_mb");
 }

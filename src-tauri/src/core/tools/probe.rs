@@ -53,14 +53,27 @@ impl ProbeCache {
         Self::default()
     }
 
-    /// Drop everything. Called after any action that changes what is on disk
-    /// or which copy wins: install, uninstall, update, override change.
+    /// Drop everything. For an action that changes what is on disk: install,
+    /// uninstall, update, override change.
     ///
     /// A poisoned lock is cleared rather than propagated — a panic in a
     /// probe task must not permanently wedge dependency detection.
     pub fn invalidate(&self) {
         clear(&self.versions);
         clear(&self.hashes);
+        clear(&self.candidates);
+    }
+
+    /// Forget *where* the tools are, but keep their hashes. For "Check Paths",
+    /// which re-scans the system rather than claiming the files changed.
+    ///
+    /// Dropping the hashes there cost a full re-read of every binary — well
+    /// over 100 MB for ffmpeg — to arrive at the same digests. It is also
+    /// unnecessary for correctness: a hash entry is keyed by the file's size
+    /// and mtime, so a binary that actually changed misses the cache and is
+    /// re-hashed anyway. Keeping them is faster *and* cannot go stale.
+    pub fn invalidate_locations(&self) {
+        clear(&self.versions);
         clear(&self.candidates);
     }
 
@@ -800,6 +813,70 @@ mod tests {
 
         cache.invalidate();
         assert_eq!(file_sha256(&file, &cache).await.unwrap(), first);
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[tokio::test]
+    async fn a_path_rescan_keeps_hashes_but_forgets_locations() {
+        // "Check Paths" asks where the tools are, not whether the files
+        // changed. Re-hashing a 100 MB binary to reach the same digest is the
+        // regression this guards.
+        let dir = tempdir();
+        let file = dir.join("payload.bin");
+        std::fs::write(&file, b"abc").unwrap();
+
+        let cache = ProbeCache::new();
+        let hash = file_sha256(&file, &cache).await.unwrap();
+        cache.store_candidates(
+            "ffmpeg",
+            &[DependencyCandidate {
+                source: DependencySource::Managed,
+                path: "/x".into(),
+                version: None,
+                working: true,
+                size_bytes: None,
+            }],
+        );
+
+        cache.invalidate_locations();
+
+        assert!(
+            cache.cached_candidates("ffmpeg").is_none(),
+            "locations must be forgotten"
+        );
+        assert_eq!(
+            cache_get(&cache.hashes, &file, file_stamp(&file).await),
+            Some(hash),
+            "the hash must survive a path rescan"
+        );
+
+        // The full invalidation still drops everything.
+        cache.invalidate();
+        assert_eq!(
+            cache_get(&cache.hashes, &file, file_stamp(&file).await),
+            None
+        );
+
+        std::fs::remove_dir_all(&dir).ok();
+    }
+
+    #[tokio::test]
+    async fn a_changed_file_is_rehashed_even_though_the_cache_was_kept() {
+        // Why keeping hashes across a rescan is safe: entries are keyed by
+        // size and mtime, so an edited binary misses the cache by itself.
+        let dir = tempdir();
+        let file = dir.join("payload.bin");
+        std::fs::write(&file, b"abc").unwrap();
+
+        let cache = ProbeCache::new();
+        let before = file_sha256(&file, &cache).await.unwrap();
+
+        cache.invalidate_locations();
+        std::fs::write(&file, b"totally different contents").unwrap();
+
+        let after = file_sha256(&file, &cache).await.unwrap();
+        assert_ne!(before, after, "a changed file must not reuse a stale hash");
 
         std::fs::remove_dir_all(&dir).ok();
     }

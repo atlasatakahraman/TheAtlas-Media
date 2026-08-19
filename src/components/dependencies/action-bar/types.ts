@@ -11,6 +11,9 @@ export type DependencyActionBarProps = {
 	isCheckingPaths: boolean;
 	onCheckPaths: () => void;
 
+	/** Opens the dialog that repoints every dependency at once. */
+	onChangeAllPaths: () => void;
+
 	isCheckingUpdates: boolean;
 	onCheckUpdates: () => void;
 

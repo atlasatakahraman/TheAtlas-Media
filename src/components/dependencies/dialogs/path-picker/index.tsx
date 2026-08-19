@@ -1,7 +1,16 @@
 "use client";
 
 import React from "react";
-import { AlertTriangle, Check, CheckCircle2, Loader2, RefreshCw, RotateCcw, Route } from "lucide-react";
+import {
+	AlertTriangle,
+	Check,
+	CheckCircle2,
+	Loader2,
+	RefreshCw,
+	RotateCcw,
+	Route,
+	SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -33,6 +42,7 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 	currentPath,
 	onClose,
 	onChanged,
+	onOpenBatch,
 }: DependencyPathDialogProps) {
 	const [candidates, setCandidates] = React.useState<DependencyCandidate[]>(() =>
 		toolKey ? (getSyncCachedCandidates(toolKey) ?? []) : []
@@ -139,6 +149,24 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 						<span className="text-xs font-medium text-muted-foreground">
 							Detected Installations
 						</span>
+						<div className="flex items-center gap-1">
+						{onOpenBatch && (
+							<Button
+								type="button"
+								size="xs"
+								variant="ghost"
+								disabled={isBusy}
+								onClick={() => {
+									onClose();
+									onOpenBatch();
+								}}
+								className="gap-1 text-xs text-muted-foreground hover:text-foreground h-6 px-2 cursor-pointer rounded-md"
+								title="Switch every dependency at once"
+							>
+								<SlidersHorizontal className="w-3 h-3 text-primary" />
+								<span>Change all</span>
+							</Button>
+						)}
 						<Button
 							type="button"
 							size="xs"
@@ -156,6 +184,7 @@ const DependencyPathDialog = React.memo(function DependencyPathDialog({
 							/>
 							<span>Rescan</span>
 						</Button>
+						</div>
 					</div>
 
 					{isLoading ? (

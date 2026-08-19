@@ -4,6 +4,7 @@
 //! `core::tools::probe`, hand back the result. Anything with a decision in it
 //! lives in `core/` and has a test.
 
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::core::tools::freshness::{apply_publish_freshness, apply_tag_freshness, UpdateCache};
@@ -98,10 +99,16 @@ pub async fn check_installed_dependencies(state: State<'_>) -> AppResult<Depende
     })
 }
 
-/// Re-check everything from scratch, discarding every cached probe.
+/// Re-scan the system for where each tool lives.
+///
+/// Deliberately keeps the SHA-256 cache. This answers "did a tool move, appear
+/// or disappear?", not "did a file change" — and re-hashing every binary to
+/// reach the same digests made the button take seconds for no new information.
+/// Hash entries are keyed by size and mtime, so a binary that genuinely
+/// changed is re-hashed regardless.
 #[tauri::command]
 pub async fn check_dependency_paths(state: State<'_>) -> AppResult<DependencyReport> {
-    state.probe.invalidate();
+    state.probe.invalidate_locations();
     build_report(&state).await
 }
 
@@ -176,4 +183,54 @@ pub async fn set_dependency_override(
 
     let ctx = state.resolve_ctx().await;
     Ok(check_tool(spec, &ctx, &state.probe).await)
+}
+
+/// Point every named tool at a path in one write, and return the fresh report.
+///
+/// Backs the "Change Paths" dialog, which switches the whole set to managed
+/// binaries or to system `PATH` at once. Doing it here rather than as N calls
+/// to `set_dependency_override` matters: that would save the prefs file N
+/// times and rebuild the report N times, and a failure halfway through would
+/// leave the tools split across two sources.
+///
+/// A path that will not run is dropped to `None` — that tool falls back to
+/// automatic resolution instead of failing the batch. Switching three tools to
+/// "system PATH" when only two are on `PATH` should move the two, which is
+/// also what the dialog's preview promises.
+#[tauri::command]
+pub async fn set_all_dependency_overrides(
+    state: State<'_>,
+    overrides: HashMap<String, Option<String>>,
+) -> AppResult<DependencyReport> {
+    let mut prefs = state.resolve_ctx().await.prefs;
+
+    for (name, path) in overrides {
+        let Some(spec) = registry::tool(&name) else {
+            // An unknown key is the frontend's bug, not the user's. Skipping
+            // beats failing a batch where every other entry was valid.
+            log::warn!("ignoring unknown dependency '{name}' in a batch override");
+            continue;
+        };
+
+        let normalized = match path {
+            Some(raw) if !raw.trim().is_empty() => {
+                let trimmed = raw.trim().to_string();
+                let candidate = std::path::PathBuf::from(&trimmed);
+                let runs = candidate.is_file()
+                    && crate::core::tools::probe::read_version(&candidate, spec, &state.probe)
+                        .await
+                        .is_ok();
+
+                runs.then_some(trimmed)
+            }
+            _ => None,
+        };
+
+        prefs.set_path_for(spec.key, normalized);
+    }
+
+    state.save_dependency_prefs(&prefs).await?;
+    state.probe.invalidate();
+
+    build_report(&state).await
 }

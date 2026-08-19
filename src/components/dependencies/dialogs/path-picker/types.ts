@@ -6,6 +6,11 @@ export type DependencyPathDialogProps = {
 	onClose: () => void;
 	/** Called after a successful change (including reset-to-automatic) so the caller can recheck. */
 	onChanged: () => void;
+	/**
+	 * Opens the batch dialog instead. Optional so the picker stays usable on
+	 * its own; when given, a "Change all" shortcut appears.
+	 */
+	onOpenBatch?: () => void;
 };
 
 /** Sentinel `pendingPath` value for the "Reset to Automatic" action. */

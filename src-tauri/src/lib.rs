@@ -175,6 +175,7 @@ pub fn run() {
             commands::dependency::check_dependency_paths,
             commands::dependency::get_dependency_candidates,
             commands::dependency::set_dependency_override,
+            commands::dependency::set_all_dependency_overrides,
             // Install lifecycle
             commands::install::install_dependency,
             commands::install::install_tools,

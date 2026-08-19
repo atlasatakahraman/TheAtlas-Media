@@ -146,7 +146,7 @@ export default function CommandPalette() {
 
 								{entry.item.shortcut && (
 									<CommandShortcut>
-										<Kbd>
+										<Kbd className="bg-black">
 											<HighlightText text={entry.item.shortcut} query={searchQuery} />
 										</Kbd>
 									</CommandShortcut>
