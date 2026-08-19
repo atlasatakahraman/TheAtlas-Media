@@ -64,16 +64,19 @@ impl ProbeCache {
         clear(&self.candidates);
     }
 
-    /// Forget *where* the tools are, but keep their hashes. For "Check Paths",
-    /// which re-scans the system rather than claiming the files changed.
+    /// Forget *where* the tools are, keeping what is known about each file.
+    /// For "Check Paths", which re-scans the system rather than claiming the
+    /// files themselves changed.
     ///
-    /// Dropping the hashes there cost a full re-read of every binary — well
-    /// over 100 MB for ffmpeg — to arrive at the same digests. It is also
-    /// unnecessary for correctness: a hash entry is keyed by the file's size
-    /// and mtime, so a binary that actually changed misses the cache and is
-    /// re-hashed anyway. Keeping them is faster *and* cannot go stale.
+    /// Dropping the hashes here cost a full re-read of every binary — well
+    /// over 100 MB for ffmpeg — to arrive at the same digests. The version
+    /// cache is kept for the same reason: re-running `--version` on a binary
+    /// that has not changed cannot return anything new.
+    ///
+    /// Safe, not merely faster: both caches are keyed by the file's size and
+    /// mtime, so a binary that actually changed misses on its own and is
+    /// re-read regardless.
     pub fn invalidate_locations(&self) {
-        clear(&self.versions);
         clear(&self.candidates);
     }
 
@@ -828,6 +831,12 @@ mod tests {
 
         let cache = ProbeCache::new();
         let hash = file_sha256(&file, &cache).await.unwrap();
+        cache_put(
+            &cache.versions,
+            file.clone(),
+            file_stamp(&file).await,
+            "1.2.3".to_string(),
+        );
         cache.store_candidates(
             "ffmpeg",
             &[DependencyCandidate {
@@ -849,6 +858,11 @@ mod tests {
             cache_get(&cache.hashes, &file, file_stamp(&file).await),
             Some(hash),
             "the hash must survive a path rescan"
+        );
+        assert_eq!(
+            cache_get(&cache.versions, &file, file_stamp(&file).await).as_deref(),
+            Some("1.2.3"),
+            "the version must survive a path rescan too"
         );
 
         // The full invalidation still drops everything.
