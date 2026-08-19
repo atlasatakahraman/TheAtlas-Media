@@ -12,8 +12,7 @@
 
 pub mod dependency;
 pub mod install;
-pub mod model;
+pub mod media;
 pub mod prefs;
 pub mod storage;
 pub mod update;
-pub mod youtube;

@@ -9,5 +9,6 @@
 //! `commands/`. Per `Rust-Tauri/06`, that split also keeps the IPC-facing
 //! surface small enough to read in one sitting.
 
+pub mod media;
 pub mod store;
 pub mod tools;

@@ -4,6 +4,7 @@ import {
 	AudioLines,
 	Box,
 	Captions,
+	CheckCircle2,
 	CirclePlay,
 	Clapperboard,
 	Contrast,
@@ -54,6 +55,7 @@ import {
 	Video,
 	Volume2,
 	Wrench,
+	XCircle,
 	Zap,
 } from "lucide-react";
 
@@ -74,6 +76,7 @@ export const ICONS = {
 	AudioLines,
 	Box,
 	Captions,
+	CheckCircle2,
 	CirclePlay,
 	Clapperboard,
 	Contrast,
@@ -124,6 +127,7 @@ export const ICONS = {
 	Video,
 	Volume2,
 	Wrench,
+	XCircle,
 	Zap,
 } as const satisfies Record<string, IconComponent>;
 

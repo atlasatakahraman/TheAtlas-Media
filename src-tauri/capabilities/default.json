@@ -9,6 +9,8 @@
 		"core:webview:allow-internal-toggle-devtools",
 		"core:default",
 		"opener:default",
+		"opener:allow-reveal-item-in-dir",
+		"dialog:allow-open",
 		"core:window:allow-toggle-maximize",
 		"core:window:allow-internal-toggle-maximize",
 		"core:window:allow-is-maximized",

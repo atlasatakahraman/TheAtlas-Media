@@ -2,4 +2,4 @@
 
 import { createPageLayout } from "@/layout/page/create-page-layout";
 
-export default createPageLayout({ variant: "center" });
+export default createPageLayout();

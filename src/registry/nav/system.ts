@@ -29,7 +29,7 @@ export const SYSTEM_GROUP: NavGroup = {
 					title: "Queue",
 					icon: "Database",
 					url: "/files/queue",
-					status: "planned",
+					status: "ready",
 				},
 			],
 		},
@@ -51,7 +51,7 @@ export const SYSTEM_GROUP: NavGroup = {
 					title: "Downloads",
 					icon: "Download",
 					url: "/settings/downloads",
-					status: "planned",
+					status: "ready",
 				},
 				{
 					id: "sys.settings.general",

@@ -124,6 +124,7 @@ pub fn run() {
     }
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
         .setup(|app| {
@@ -143,6 +144,19 @@ pub fn run() {
             // The KV store's debounced writer. One task for the process; it
             // sleeps on a `Notify` and costs nothing while the app is idle.
             tauri::async_runtime::spawn(Arc::clone(&state.kv).run_flush_loop());
+
+            // The persisted concurrency preference, applied once at startup —
+            // `MediaEngine::new()` otherwise stays at its default of 2.
+            tauri::async_runtime::spawn({
+                let state = Arc::clone(&state);
+                async move {
+                    if let Ok(Some(value)) = state.kv.get("media", "concurrency").await {
+                        if let Some(limit) = value.as_u64() {
+                            state.media.set_limit(limit as usize);
+                        }
+                    }
+                }
+            });
 
             commands::update::spawn_startup_check(&handle);
 
@@ -196,6 +210,18 @@ pub fn run() {
             commands::prefs::kv_set,
             commands::prefs::kv_patch,
             commands::prefs::kv_delete,
+            // Media
+            commands::media::probe_media_url,
+            commands::media::probe_media_file,
+            commands::media::enqueue_download,
+            commands::media::enqueue_convert,
+            commands::media::cancel_media_job,
+            commands::media::list_media_jobs,
+            commands::media::get_media_history,
+            commands::media::clear_media_history,
+            commands::media::set_media_concurrency,
+            commands::media::get_default_media_output_dir,
+            commands::media::reveal_output_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application")

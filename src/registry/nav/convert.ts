@@ -15,7 +15,7 @@ export const CONVERT_GROUP: NavGroup = {
 					title: "Quick Convert",
 					icon: "Gauge",
 					url: "/convert/quick",
-					status: "planned",
+					status: "ready",
 				},
 				{
 					id: "cv.transcode.to-container",

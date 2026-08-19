@@ -17,6 +17,8 @@ export const PREF_NAMESPACE = {
 	app: "app",
 	/** Per-item flags the optimistic layer writes: favourites, pins. */
 	flags: "flags",
+	/** Download/convert output directory and concurrency. */
+	media: "media",
 } as const;
 
 export type PrefNamespace = (typeof PREF_NAMESPACE)[keyof typeof PREF_NAMESPACE];

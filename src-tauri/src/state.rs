@@ -28,6 +28,7 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, Manager};
 
+use crate::core::media::engine::MediaEngine;
 use crate::core::store::kv::KvStore;
 use crate::core::tools::probe::{platform_dir_name, ProbeCache};
 use crate::core::tools::types::{DependencyPrefs, ResolveCtx};
@@ -55,6 +56,7 @@ pub struct AppPaths {
     pub dependency_prefs: PathBuf,
     pub update_cache: PathBuf,
     pub artifact_journal: PathBuf,
+    pub media_history: PathBuf,
 }
 
 impl AppPaths {
@@ -70,6 +72,7 @@ impl AppPaths {
             dependency_prefs: local_data.join("dependency_prefs.json"),
             update_cache: local_data.join("update_cache.json"),
             artifact_journal: local_data.join("installed_artifacts.json"),
+            media_history: local_data.join("media_history.json"),
             local_data,
         })
     }
@@ -82,6 +85,7 @@ pub struct AppState {
     /// One client for the process. Building one per request throws away
     /// connection pooling and repeats the TLS handshake every time.
     pub http: reqwest::Client,
+    pub media: Arc<MediaEngine>,
 }
 
 impl AppState {
@@ -92,6 +96,7 @@ impl AppState {
             probe: Arc::new(ProbeCache::new()),
             http: crate::core::tools::download::build_client(USER_AGENT)?,
             kv,
+            media: Arc::new(MediaEngine::new()),
             paths,
         })
     }

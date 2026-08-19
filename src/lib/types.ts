@@ -161,3 +161,82 @@ export function errorMessage(error: unknown, fallback = "Something went wrong"):
 	if (typeof error === "string" && error.trim()) return error;
 	return fallback;
 }
+
+/**
+ * Matches Rust `JobKind` enum with `#[serde(rename_all = "camelCase")]`
+ * (`src-tauri/src/core/media/types.rs`).
+ */
+export type JobKind = "download" | "convert";
+
+/**
+ * Matches Rust `JobStatus` enum with `#[serde(rename_all = "camelCase")]`.
+ */
+export type JobStatus = "queued" | "running" | "finalizing" | "completed" | "failed" | "cancelled";
+
+/**
+ * Matches Rust `JobProgress` struct with `#[serde(rename_all = "camelCase")]`.
+ * `percent: null` means render indeterminate — either the phase has no
+ * notion of a percentage, or the total size is not known yet.
+ */
+export type JobProgress = {
+	percent: number | null;
+	downloadedBytes: number | null;
+	totalBytes: number | null;
+	speedBps: number | null;
+	etaSecs: number | null;
+	message: string;
+};
+
+/**
+ * Matches Rust `JobSnapshot` struct with `#[serde(rename_all = "camelCase")]`.
+ */
+export type JobSnapshot = {
+	id: number;
+	kind: JobKind;
+	status: JobStatus;
+	title: string;
+	progress: JobProgress;
+	outputPath: string | null;
+	error: string | null;
+	queuedAt: number;
+	startedAt: number | null;
+	finishedAt: number | null;
+};
+
+/**
+ * Matches Rust `VideoFormat` struct with `#[serde(rename_all = "camelCase")]`.
+ */
+export type VideoFormat = {
+	formatId: string;
+	ext: string;
+	resolution: string | null;
+	fps: number | null;
+	vcodec: string | null;
+	acodec: string | null;
+	filesizeBytes: number | null;
+	tbrKbps: number | null;
+};
+
+/**
+ * Matches Rust `VideoMetadata` struct with `#[serde(rename_all = "camelCase")]`.
+ */
+export type VideoMetadata = {
+	id: string;
+	title: string;
+	durationSecs: number | null;
+	thumbnailUrl: string | null;
+	uploader: string | null;
+	formats: VideoFormat[];
+};
+
+/**
+ * Matches Rust `MediaProbe` struct with `#[serde(rename_all = "camelCase")]`.
+ */
+export type MediaProbe = {
+	durationSecs: number | null;
+	container: string | null;
+	videoCodec: string | null;
+	audioCodec: string | null;
+	width: number | null;
+	height: number | null;
+};
