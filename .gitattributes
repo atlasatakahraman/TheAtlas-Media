@@ -1,1 +1,2 @@
 * text=auto eol=lf
+src-tauri/src/core/media/capability/fixtures/** -text

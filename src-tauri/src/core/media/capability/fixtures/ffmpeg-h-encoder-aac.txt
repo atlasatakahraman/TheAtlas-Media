@@ -1,0 +1,18 @@
+Encoder aac [AAC (Advanced Audio Coding)]:
+    General capabilities: dr1 delay small 
+    Threading capabilities: none
+    Supported sample rates: 96000 88200 64000 48000 44100 32000 24000 22050 16000 12000 11025 8000 7350
+    Supported sample formats: fltp
+AAC encoder AVOptions:
+  -aac_coder         <int>        E...A...... Coding algorithm (from 0 to 2) (default twoloop)
+     anmr            0            E...A...... ANMR method
+     twoloop         1            E...A...... Two loop searching method
+     fast            2            E...A...... Default fast search
+  -aac_ms            <boolean>    E...A...... Force M/S stereo coding (default auto)
+  -aac_is            <boolean>    E...A...... Intensity stereo coding (default true)
+  -aac_pns           <boolean>    E...A...... Perceptual noise substitution (default true)
+  -aac_tns           <boolean>    E...A...... Temporal noise shaping (default true)
+  -aac_ltp           <boolean>    E...A...... Long term prediction (default false)
+  -aac_pred          <boolean>    E...A...... AAC-Main prediction (default false)
+  -aac_pce           <boolean>    E...A...... Forces the use of PCEs (default false)
+
