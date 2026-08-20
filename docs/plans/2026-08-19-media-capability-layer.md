@@ -1,3 +1,12 @@
+---
+type: plan
+project: theatlas-media
+tags: [theatlas-media, plan]
+created: 2026-08-19
+updated: 2026-08-20
+status: active
+---
+
 # Media capability layer — design & construction plan
 
 Status: design refined after repository audit, then revised against measured probe costs; ready to implement in dependency order.

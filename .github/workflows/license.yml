@@ -4,20 +4,66 @@ on:
   pull_request:
     paths:
       - "src-tauri/Cargo.toml"
+      - "src-tauri/Cargo.lock"
       - "package.json"
+      - "bun.lock"
+      - "scripts/check-licenses.ts"
   schedule:
     - cron: "0 6 * * 1"
   workflow_dispatch:
 
 jobs:
-  check:
+  licenses:
+    name: Dependency licenses
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: License Check Stub
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # npm/bun dependencies only - crates are gated by `cargo deny check licenses`
+      # in ci.yml's supply-chain job, against src-tauri/deny.toml's allow-list.
+      # ALLOW  MIT, Apache-2.0, BSD, ISC, MPL, Unlicense, CC0, Zlib, Unicode-3.0
+      # DENY   GPL, AGPL, SSPL  -> fails the job
+      # REVIEW anything else    -> reported, does not fail
+      - name: Verify dependency licenses
+        run: bun run scripts/check-licenses.ts --report
+
+      - name: Upload Third-Party Components inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: third-party-components
+          path: docs/third-party-components.md
+          if-no-files-found: warn
+
+  secrets:
+    name: Secret and PII scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Personal info must not reach source files. The LICENSE files legitimately
+      # carry the contact address, so they are excluded.
+      - name: Personal info scan
         run: |
-          echo "TODO: License harvesting deferred to Plan 08."
-          echo "This workflow exists so the policy gate is in place; it currently runs gitleaks"
-          echo "and grep for accidental commit of personal info ('atlasatakahraman' in source files)."
+          if grep -rn "atlasatakahraman" \
+               --include="*.ts" --include="*.tsx" --include="*.rs" --include="*.js" --include="*.mjs" \
+               --exclude-dir=node_modules --exclude-dir=target --exclude-dir=.git . ; then
+            echo "::error::personal info found in source files"
+            exit 1
+          fi
+          echo "clean"

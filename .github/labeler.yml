@@ -1,19 +1,38 @@
+# actions/labeler v5+ schema. The v4 form (a bare glob list per label) fails with
+#   "found unexpected type for label 'frontend' (should be array of config options)"
+# and that failure looked identical to a real CI failure on every PR.
 frontend:
-  - src/**/*
-  - tailwind.config.ts
-  - postcss.config.mjs
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/**/*'
+          - 'postcss.config.mjs'
+          - 'components.json'
 
 backend:
-  - src-tauri/**/*
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src-tauri/**/*'
 
 docs:
-  - plans/**/*
-  - documentation/**/*
-  - README.md
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'docs/**/*'
+          - 'README.md'
+          - 'CLAUDE.md'
+          - 'AGENTS.md'
 
 agents:
-  - .gemini/**/*
-  - scripts/**/*
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.gemini/**/*'
+          - 'scripts/**/*'
 
 ci:
-  - .github/**/*
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/**/*'
+
+licensing:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'LICENSE*'

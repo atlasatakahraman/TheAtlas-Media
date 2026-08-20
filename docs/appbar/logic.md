@@ -1,3 +1,12 @@
+---
+type: doc
+project: theatlas-media
+tags: [theatlas-media, docs]
+created: 2026-08-20
+updated: 2026-08-20
+status: active
+---
+
 # Appbar Search Bar — Structure & Logic
 
 Source: `src/layout/sidebar/Appbar.tsx` (UI shell + filtering)
