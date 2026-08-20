@@ -83,7 +83,11 @@ The following are **strictly prohibited** without prior written permission from 
 
 ## 5. Commercial Licensing
 
-If you wish to use The Work for commercial purposes, you must obtain a separate commercial license. To inquire:
+If you wish to use The Work for commercial purposes, you must obtain a separate commercial license.
+
+The terms of that license are set out in the **Atlas Ata KAHRAMAN Commercial License (AAKCL) v1.0**, distributed alongside this file as `LICENSE-COMMERCIAL.md`. In summary: internal commercial use and the right to embed The Work in a product you sell, per Licensed Product, with full source access and no obligation to open-source your own work. Public attribution is waived for commercial licensees; the trademark and no-sublicensing restrictions are not.
+
+To inquire:
 
 **Email:** atlasatakahraman.com@gmail.com
 
