@@ -42,18 +42,11 @@ bun-debug.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# ── Phase 0 additions ─────────────────────────────────────
-# Build & cache
-.next/
-out/
+# rust
 target/
+
 # Dev logs (created during bun tauri dev runs)
 dev*.log
-
-# Scratch from Phase 0 agent missions
-all_9_files.json
-mission03_spec.txt
-rollback_stamps.py
 
 # Antigravity runtime state (keep configs, ignore caches)
 .gemini/antigravity/cache/
@@ -70,3 +63,9 @@ packaging/arch/*.deb
 
 # Superpowers subagent-driven-development scratch
 .superpowers/
+
+# graphify: regenerable AST cache + graph output (`graphify update .`)
+graphify-out/
+
+# npm lockfile - this repo is bun-only
+package-lock.json
