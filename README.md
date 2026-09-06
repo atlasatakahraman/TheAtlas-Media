@@ -6,42 +6,45 @@
 
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/logo-dark.png" />
-    <img src="./docs/readme/logo-light.png" width="240" alt="TheAtlas Media logo" />
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/logo-dark.svg" />
+    <img src="./docs/readme/logo-light.svg" width="260" alt="TheAtlas Media logo" />
   </picture>
 </p>
 
 <p align="center">
-  <img src="./docs/readme/hero.svg" width="100%" alt="TheAtlas Media — local media workflows without command-line friction" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/hero-dark.svg" />
+    <img src="./docs/readme/hero-light.svg" width="100%" alt="TheAtlas Media — local media workflows with native foundations" />
+  </picture>
 </p>
 
 <br>
 
 <p align="center">
-  <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><img src="./docs/readme/badges/status-prerelease.svg" height="50" alt="Pre-release" /></a>&nbsp;&nbsp;
-  <a href="./package.json"><img src="./docs/readme/badges/status-version.svg" height="50" alt="Version 0.0.1" /></a>&nbsp;&nbsp;
-  <a href="./LICENSE.md"><img src="./docs/readme/badges/license.svg" height="50" alt="AAKNCL 1.0 license" /></a>
+  <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/status-prerelease.svg" /><img src="./docs/readme/badges/light/status-prerelease.svg" height="50" alt="Pre-release" /></picture></a>&nbsp;&nbsp;
+  <a href="./package.json"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/status-version.svg" /><img src="./docs/readme/badges/light/status-version.svg" height="50" alt="Version 0.0.1" /></picture></a>&nbsp;&nbsp;
+  <a href="./LICENSE.md"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/license.svg" /><img src="./docs/readme/badges/light/license.svg" height="50" alt="AAKNCL 1.0 license" /></picture></a>
 </p>
 
 <p align="center">
-  <a href="https://v2.tauri.app/"><img src="./docs/readme/badges/tech-tauri.svg" height="50" alt="Tauri 2.11" /></a>&nbsp;&nbsp;
-  <a href="https://nextjs.org/"><img src="./docs/readme/badges/tech-next.svg" height="50" alt="Next.js 16" /></a>&nbsp;&nbsp;
-  <a href="https://www.rust-lang.org/"><img src="./docs/readme/badges/tech-rust.svg" height="50" alt="Rust 1.97.1" /></a>&nbsp;&nbsp;
-  <a href="https://bun.sh/"><img src="./docs/readme/badges/tech-bun.svg" height="50" alt="Bun 1.4 or newer" /></a>
+  <a href="https://v2.tauri.app/"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/tech-tauri.svg" /><img src="./docs/readme/badges/light/tech-tauri.svg" height="50" alt="Tauri 2.11" /></picture></a>&nbsp;&nbsp;
+  <a href="https://nextjs.org/"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/tech-next.svg" /><img src="./docs/readme/badges/light/tech-next.svg" height="50" alt="Next.js 16" /></picture></a>&nbsp;&nbsp;
+  <a href="https://www.rust-lang.org/"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/tech-rust.svg" /><img src="./docs/readme/badges/light/tech-rust.svg" height="50" alt="Rust 1.97.1" /></picture></a>&nbsp;&nbsp;
+  <a href="https://bun.sh/"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/tech-bun.svg" /><img src="./docs/readme/badges/light/tech-bun.svg" height="50" alt="Bun 1.4 or newer" /></picture></a>
 </p>
 
 <br>
 
 <p align="center">
-  <a href="#overview"><img src="./docs/readme/badges/nav-overview.svg" height="50" alt="Overview" /></a>&nbsp;&nbsp;
-  <a href="#current-foundation"><img src="./docs/readme/badges/nav-foundation.svg" height="50" alt="Current foundation" /></a>&nbsp;&nbsp;
-  <a href="#architecture"><img src="./docs/readme/badges/nav-architecture.svg" height="50" alt="Architecture" /></a>
+  <a href="#overview"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-overview.svg" /><img src="./docs/readme/badges/light/nav-overview.svg" height="50" alt="Overview" /></picture></a>&nbsp;&nbsp;
+  <a href="#current-foundation"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-foundation.svg" /><img src="./docs/readme/badges/light/nav-foundation.svg" height="50" alt="Current foundation" /></picture></a>&nbsp;&nbsp;
+  <a href="#architecture"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-architecture.svg" /><img src="./docs/readme/badges/light/nav-architecture.svg" height="50" alt="Architecture" /></picture></a>
 </p>
 
 <p align="center">
-  <a href="#development"><img src="./docs/readme/badges/nav-development.svg" height="50" alt="Development" /></a>&nbsp;&nbsp;
-  <a href="#roadmap"><img src="./docs/readme/badges/nav-roadmap.svg" height="50" alt="Roadmap" /></a>&nbsp;&nbsp;
-  <a href="#license"><img src="./docs/readme/badges/nav-license.svg" height="50" alt="License" /></a>
+  <a href="#development"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-development.svg" /><img src="./docs/readme/badges/light/nav-development.svg" height="50" alt="Development" /></picture></a>&nbsp;&nbsp;
+  <a href="#roadmap"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-roadmap.svg" /><img src="./docs/readme/badges/light/nav-roadmap.svg" height="50" alt="Roadmap" /></picture></a>&nbsp;&nbsp;
+  <a href="#license"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/nav-license.svg" /><img src="./docs/readme/badges/light/nav-license.svg" height="50" alt="License" /></picture></a>
 </p>
 
 <br>
@@ -66,7 +69,10 @@ The application pairs a statically exported **Next.js 16** interface with a **Ta
 
 <a id="current-foundation"></a>
 <p align="center">
-  <img src="./docs/readme/foundation.svg" width="100%" alt="Current TheAtlas Media foundation: dependency discovery, verified installation, progress reporting, storage control, cross-platform shell, packaging and CI" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/foundation-dark.svg" />
+    <img src="./docs/readme/foundation-light.svg" width="100%" alt="Current TheAtlas Media foundation: dependency discovery, verified installation, progress reporting, storage control, cross-platform shell, packaging and CI" />
+  </picture>
 </p>
 
 ### Implemented now
@@ -89,7 +95,10 @@ The sidebar already maps the intended product surface—single videos, playlists
 
 <a id="architecture"></a>
 <p align="center">
-  <img src="./docs/readme/architecture.svg" width="100%" alt="TheAtlas Media architecture: Next.js product UI, Tauri IPC bridge, Rust services, and local media tools" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/architecture-dark.svg" />
+    <img src="./docs/readme/architecture-light.svg" width="100%" alt="TheAtlas Media architecture: Next.js product UI, Tauri IPC bridge, Rust services, and local media tools" />
+  </picture>
 </p>
 
 ### Runtime boundaries
@@ -192,7 +201,10 @@ cargo test --no-default-features
 
 <a id="roadmap"></a>
 <p align="center">
-  <img src="./docs/readme/roadmap.svg" width="100%" alt="TheAtlas Media roadmap: foundation complete, dependencies complete, media workflows in progress, public releases later" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/readme/roadmap-dark.svg" />
+    <img src="./docs/readme/roadmap-light.svg" width="100%" alt="TheAtlas Media roadmap: foundation complete, dependencies complete, media workflows in progress, public releases later" />
+  </picture>
 </p>
 
 ### Directional milestones
