@@ -7,7 +7,7 @@ pkgrel=1
 pkgdesc="Cross-platform desktop app for downloading, extracting, and converting media"
 arch=('x86_64')
 url="https://github.com/atlasatakahraman/TheAtlas-Media"
-license=('custom:AAKNCL-1.0')
+license=('GPL-3.0-only')
 depends=(
 	'cairo'
 	'desktop-file-utils'

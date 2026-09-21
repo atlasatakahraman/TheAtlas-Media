@@ -2,7 +2,7 @@
 
 When sources disagree, this order wins:
 
-1. `/LICENSE` and `documentation/LICENSE.md` (legal, AAKNCL v1.0)
+1. `/LICENSE` (legal, GPL-3.0-only; AAKNCL v1.0 until 2026-09-21)
 2. `documentation/GOAL.md` (product scope)
 3. `plans/README.md` "Cross-cutting decisions" table (D1–D11)
 4. `docs/adr/ADR-*.md` referenced by the relevant locked decision

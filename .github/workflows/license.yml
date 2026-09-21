@@ -28,8 +28,8 @@ jobs:
 
       # npm/bun dependencies only - crates are gated by `cargo deny check licenses`
       # in ci.yml's supply-chain job, against src-tauri/deny.toml's allow-list.
-      # ALLOW  MIT, Apache-2.0, BSD, ISC, MPL, Unlicense, CC0, Zlib, Unicode-3.0
-      # DENY   GPL, AGPL, SSPL  -> fails the job
+      # ALLOW  MIT, Apache-2.0, BSD, ISC, MPL, Unlicense, CC0, Zlib, Unicode-3.0, GPL-3.0, GPL-2.0-or-later
+      # DENY   AGPL, SSPL, GPL-2.0-only  -> fails the job
       # REVIEW anything else    -> reported, does not fail
       - name: Verify dependency licenses
         run: bun run scripts/check-licenses.ts --report

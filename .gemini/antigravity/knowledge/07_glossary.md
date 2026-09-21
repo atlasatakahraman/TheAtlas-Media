@@ -9,6 +9,6 @@
 - **CommandError** — `thiserror` enum returned from every `#[tauri::command]`. Variants: `ExtractorNotReady`, `DependencyDownloadFailed`, `UnsupportedSite`, `InvalidUrl`, `InvalidOutputDirectory`, `FormatUnavailable`, `VideoUnavailable`, `RestrictedVideo`, `Network`, `DownloadFailed`, `Cancelled`, `Internal`.
 - **DownloadEvent** — `Resolving | Downloading | Merging | Postprocess | Complete | Failed | Cancelled`. Streamed via `ipc::Channel<DownloadEvent>`.
 - **SetupEvent** — `Idle | CheckingBinaries | DownloadingDependencies | InstallingYtDlp | InstallingFfmpeg | Ready | Failed`.
-- **AAKNCL** — Atlas Ata Kahraman Non-Commercial License v1.0.
+- **AAKNCL** — Atlas Ata Kahraman Non-Commercial License v1.0. Legacy: this project used it until 2026-09-21 and is GPL-3.0-only since.
 - **D1–D11** — see `01_locked_decisions.md`.
 - **src/ layout** — All application code lives under src/. Plans use src/app, src/components, src/lib paths. Imports use the @/* alias mapped to ./src/* in tsconfig.json.

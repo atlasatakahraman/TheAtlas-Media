@@ -6,6 +6,7 @@
 	"packageManager": "bun",
 	"version": "0.0.1",
 	"private": true,
+	"license": "GPL-3.0-only",
 	"scripts": {
 		"dev": "bun --bun tauri dev",
 		"build": "bun --bun tauri build",

@@ -6,11 +6,11 @@
 # the gate.
 #
 # The licence allowlist is the part that earns its keep on this project. The
-# app ships under AAKNCL-1.0, which is non-commercial, and a GPL crate linked
-# into the binary is a licence conflict rather than a style question. A
-# `yt-dlp` crate that was declared, never imported, and GPL-3.0 sat in this
-# manifest until it was found by hand — this policy would have caught it on the
-# commit that added it.
+# app ships under GPL-3.0-only (AAKNCL-1.0 until 2026-09-21). A GPL-3.0 crate
+# is compatible now, but an AGPL, SSPL or GPL-2.0-only crate linked into the
+# binary is a licence conflict rather than a style question, and every licence
+# still needs a line here before it lands. A `yt-dlp` crate that was declared,
+# never imported, and GPL-3.0 sat in this manifest until it was found by hand.
 
 [graph]
 all-features = false
@@ -42,8 +42,8 @@ deny = [
 # Exactly the licences present in the current tree — no speculative headroom,
 # so `cargo deny` stays silent when it passes and every entry is one somebody
 # actually checked. A new dependency under an unlisted licence fails the build,
-# which is the prompt to check it against AAKNCL-1.0's non-commercial terms
-# before adding a line here.
+# which is the prompt to check it against GPL-3.0-only (reject AGPL, SSPL and
+# GPL-2.0-only) before adding a line here.
 allow = [
     "MIT",
     "Apache-2.0",
@@ -59,9 +59,9 @@ allow = [
 ]
 confidence-threshold = 0.9
 
-# AAKNCL-1.0 is this project's own licence and is not an SPDX identifier, so
-# the expression in Cargo.toml cannot be parsed. The exception scopes that to
-# this crate alone — every dependency is still held to the allowlist above.
+# This crate's own licence (GPL-3.0-only) is not a dependency licence and does
+# not belong in the allowlist. The exception scopes that to this crate alone —
+# every dependency is still held to the allowlist above.
 private = { ignore = true }
 
 [sources]

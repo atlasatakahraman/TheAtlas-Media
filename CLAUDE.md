@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-TheAtlas Media — cross-platform desktop app for downloading, extracting, and converting media (video/audio). Next.js 16 static-export frontend + Tauri 2 / Rust backend. Local-first, no telemetry. License: AAKNCL v1.0 (non-commercial). Repo: github.com/atlasatakahraman/TheAtlas-Media. (`AGENTS.md` redirects here.)
+TheAtlas Media — cross-platform desktop app for downloading, extracting, and converting media (video/audio). Next.js 16 static-export frontend + Tauri 2 / Rust backend. Local-first, no telemetry. License: GPL-3.0-only. Repo: github.com/atlasatakahraman/TheAtlas-Media. (`AGENTS.md` redirects here.)
 
 **Pre-release.** The desktop shell and the dependency-management system are done. The media workflows (download/convert/extract) are not — see "What is actually implemented" below before assuming a feature exists.
 

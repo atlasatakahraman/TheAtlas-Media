@@ -3,10 +3,10 @@ name = "theatlas-media"
 version = "0.0.1"
 description = "A high-performance desktop app for downloading, extracting, and converting media."
 authors = ["atlasatakahraman"]
-license = "AAKNCL-1.0"
+license = "GPL-3.0-only"
 # A desktop app, never a crates.io package. Also what lets `cargo deny`'s
-# `private` exception apply, since AAKNCL-1.0 is not an SPDX identifier and the
-# licence expression above cannot be parsed.
+# `private` exception apply, which keeps this crate's own licence out of the
+# dependency allowlist in deny.toml.
 publish = false
 repository = "https://github.com/atlasatakahraman/TheAtlas-Media"
 edition = "2021"

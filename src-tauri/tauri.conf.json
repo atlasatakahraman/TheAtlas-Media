@@ -89,11 +89,11 @@
 			"debugApplicationIdSuffix": ".debug"
 		},
 		"copyright": "atlasatakahraman 2026",
-		"license": "AAKNCL-1.0",
+		"license": "GPL-3.0-only",
 		"category": "GraphicsAndDesign",
 		"homepage": "main",
 		"publisher": "Atlas Ata KAHRAMAN",
-		"licenseFile": "../LICENSE.md",
+		"licenseFile": "../LICENSE",
 		"fileAssociations": [
 			{
 				"ext": [

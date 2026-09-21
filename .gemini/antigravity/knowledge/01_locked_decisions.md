@@ -10,7 +10,7 @@ These are the only legitimate justifications for changes to `src-tauri/` or `src
 - **D6** — Every `#[tauri::command]` returns `Result<T, CommandError>`. No `String` errors.
 - **D7** — Single source of truth for IPC types: `src-tauri/src/contracts/` (Rust) → `ts-rs` → `src/lib/api-contracts.gen.ts` (TS). Frontend imports types from the generated file only.
 - **D8** — Before writing any `.tsx`, read `node_modules/next/dist/docs/<topic>.md`. Stamp the file with a verification comment dated within 30 days.
-- **D9** — AAKNCL attribution must appear in: About page, README, and SPDX-style header on every new source file.
+- **D9** — GPL-3.0-only licence attribution must appear in: About page, README, and SPDX-style header on every new source file.
 - **D10** — Next.js client bundle ≤ 200 KB gzipped. Enforced in CI.
 
 Changing a D-decision requires editing `plans/README.md` first, then the affected plan(s), then an ADR.

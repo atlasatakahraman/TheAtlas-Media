@@ -23,7 +23,7 @@
 <p align="center">
   <a href="https://github.com/atlasatakahraman/TheAtlas-Media"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/status-prerelease.svg" /><img src="./docs/readme/badges/light/status-prerelease.svg" height="50" alt="Pre-release" /></picture></a>&nbsp;&nbsp;
   <a href="./package.json"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/status-version.svg" /><img src="./docs/readme/badges/light/status-version.svg" height="50" alt="Version 0.0.1" /></picture></a>&nbsp;&nbsp;
-  <a href="./LICENSE.md"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/license.svg" /><img src="./docs/readme/badges/light/license.svg" height="50" alt="AAKNCL 1.0 license" /></picture></a>
+  <a href="./LICENSE"><picture><source media="(prefers-color-scheme: dark)" srcset="./docs/readme/badges/dark/license.svg" /><img src="./docs/readme/badges/light/license.svg" height="50" alt="GPL-3.0 license" /></picture></a>
 </p>
 
 <p align="center">
@@ -244,13 +244,15 @@ Before proposing code, run the relevant TypeScript, repository-rule, and Rust ch
 <a id="license"></a>
 ## License
 
-TheAtlas Media is distributed under the **[AAKNCL v1.0](./LICENSE.md)** non-commercial license.
+TheAtlas Media is distributed under **[GPL-3.0-only](./LICENSE)**.
 
-- Personal, educational, and non-commercial use is permitted under the license terms.
-- Commercial use requires a separate agreement.
-- TheAtlas names, product identity, and logos are not granted for unauthorized commercial use or misleading redistribution.
+- Use, modify and redistribute it, commercially included, under the GPL's terms: pass on the same freedoms with corresponding source.
+- TheAtlas names, product identity, and logos are not covered by the licence grant (GPL-3.0 §7(e)) and may not be used in a way that implies official affiliation or endorsement.
+- Third-party components keep their own licences — see [docs/third-party-components.md](./docs/third-party-components.md).
 
-For technical, legal, or commercial-license inquiries:
+SPDX-License-Identifier: `GPL-3.0-only`
+
+For technical or legal inquiries:
 
 - **Developer:** Atlas Ata Kahraman
 - **GitHub:** [@atlasatakahraman](https://github.com/atlasatakahraman)

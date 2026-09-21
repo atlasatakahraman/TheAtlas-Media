@@ -2,18 +2,18 @@
 
 **Rust / TS / JS / JSX / TSX:**
 ```
-// SPDX-License-Identifier: LicenseRef-AAKNCL-1.0
+// SPDX-License-Identifier: GPL-3.0-only
 // Copyright (c) 2025 Atlas Ata Kahraman (atlasfirarda)
-// Part of TheAtlas Media Processing. Non-commercial use only.
-// Full terms: /LICENSE  |  Commercial licensing: atlasatakahraman.com@gmail.com
+// Part of TheAtlas Media Processing. Licensed under GPL-3.0-only.
+// Full terms: /LICENSE
 ```
 
 **CSS / SCSS:**
 ```
-/* SPDX-License-Identifier: LicenseRef-AAKNCL-1.0
+/* SPDX-License-Identifier: GPL-3.0-only
  * Copyright (c) 2025 Atlas Ata Kahraman (atlasfirarda)
- * Part of TheAtlas Media Processing. Non-commercial use only.
- * Full terms: /LICENSE  |  Commercial licensing: atlasatakahraman.com@gmail.com
+ * Part of TheAtlas Media Processing. Licensed under GPL-3.0-only.
+ * Full terms: /LICENSE
  */
 ```
 
@@ -23,9 +23,9 @@ For `.tsx` client components, the license header goes **above** the `'use client
 
 ```tsx
 'use client';
-// SPDX-License-Identifier: LicenseRef-AAKNCL-1.0
+// SPDX-License-Identifier: GPL-3.0-only
 // Copyright (c) 2025 Atlas Ata Kahraman (atlasfirarda)
-// Part of TheAtlas Media Processing. Non-commercial use only.
+// Part of TheAtlas Media Processing. Licensed under GPL-3.0-only.
 // next@16.2.6 — verified against node_modules/next/dist/docs/<file>.md on YYYY-MM-DD
 ```
 
