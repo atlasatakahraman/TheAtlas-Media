@@ -1,0 +1,1 @@
+Plans live in the knowledge vault, not here: `C:\obsidian\root\40-Plans\2026-08-19-theatlas-media-capability-layer\` (moved 2026-09-22). `evidence/` stays: `scripts/capture-media-evidence.sh` writes its reports there.

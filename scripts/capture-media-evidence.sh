@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-# Capture the evidence base for docs/plans/2026-08-19-media-capability-layer.md.
+# Capture the evidence base for the capability-layer plan (vault:
+# 40-Plans/2026-08-19-theatlas-media-capability-layer/).
 #
 # Two outputs, one pass:
 #
@@ -126,7 +127,7 @@ time_mean() {
     echo "# Media capability evidence — $OS/$ARCH"
     echo
     echo "Captured $(date '+%Y-%m-%d %H:%M %Z') by \`scripts/capture-media-evidence.sh\`."
-    echo "Feeds §3 of \`docs/plans/2026-08-19-media-capability-layer.md\`."
+    echo "Feeds §3 of the capability-layer plan (vault: \`40-Plans/2026-08-19-theatlas-media-capability-layer/\`)."
     echo
     echo "| Field | Value |"
     echo "|---|---|"
